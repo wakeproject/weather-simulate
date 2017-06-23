@@ -5,8 +5,7 @@ import numpy as np
 import system
 
 from system.planet import Relation, Grid, zero, alt, theta, phi
-from system.planet import a, g, Omeaga
-from system.planet import gamma, gammad, cp, R, miu
+from system.planet import a, g, Omega
 from system.planet import StefanBoltzmann, WaterHeatCapacity, RockHeatCapacity, SunConst
 
 
@@ -41,5 +40,5 @@ class SIGrd(Grid):
         super(SIGrd, self).__init__('si', lng_size, lat_size, alt_size, initfn=zinit)
 
     def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None):
-        return SunConst * np.cos(phi) * relu(np.sin(theta - Omeaga * system.t))
+        return SunConst * np.cos(phi) * relu(np.sin(theta - Omega * system.t))
 

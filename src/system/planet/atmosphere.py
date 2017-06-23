@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from system.planet import Relation, Grid, zero, one, alt, theta, phi, a, g, Omeaga, gamma, gammad, cp, R, miu
+from system.planet import Relation, Grid, zero, one, alt, theta, phi, a, g, Omega, gamma, gammad, cv, R, miu
 from system.planet import StefanBoltzmann, WaterHeatCapacity, RockHeatCapacity, SunConst
 
 
@@ -42,7 +42,7 @@ class UGrd(Grid):
         _, tao_xy, _ = np.gradient(u_y)
         _, _, tao_xz = np.gradient(u_z)
 
-        return - u * u_x - v * u_y - w * u_z + u * v * np.tan(phi) / a - u * w / a - p_x / rao - 2 * Omeaga * (w * np.sin(phi) - v * np.sin(phi)) + miu * (tao_xx + tao_xy + tao_xz) / rao
+        return u * v * np.tan(phi) / a - u * w / a - p_x / (a * rao * np.cos(phi)) - 2 * Omega * (w * np.cos(phi) - v * np.sin(phi)) + miu * (tao_xx + tao_xy + tao_xz) / rao
 
 
 class VGrd(Grid):
@@ -57,7 +57,7 @@ class VGrd(Grid):
         _, tao_yy, _ = np.gradient(v_y)
         _, _, tao_yz = np.gradient(v_z)
 
-        return - u * v_x - v * v_y - w * v_z - u * u * np.tan(phi) / a - u * w / a - p_y / rao - 2 * Omeaga * u * np.sin(phi) + miu * (tao_yx + tao_yy + tao_yz) / rao
+        return - u * u * np.tan(phi) / a - v * w / a - p_y / (a * rao) - 2 * Omega * u * np.sin(phi) + miu * (tao_yx + tao_yy + tao_yz) / rao
 
 
 class WGrd(Grid):
@@ -72,17 +72,8 @@ class WGrd(Grid):
         _, tao_zy, _ = np.gradient(w_y)
         _, _, tao_zz = np.gradient(w_z)
 
-        #return - u * w_x - v * w_y - w * w_z - (u * u + v * v) - p_z / rao + 2 * Omeaga * u * np.cos(phi) - g + miu * (tao_zx + tao_zy + tao_zz) / rao
-        return  - p_z / rao - g + miu * (tao_zx + tao_zy + tao_zz) / rao
-
-
-class TGrd(Grid):
-    def __init__(self, lng_size, lat_size, alt_size):
-        super(TGrd, self).__init__('T', lng_size, lat_size, alt_size, initfn=tinit)
-
-    def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None):
-        T_x, T_y, T_z = np.gradient(T)
-        return - u * T_x - v * T_y + w * (gamma - gammad) + dH / cp
+        return (u * u + v * v) / a - p_z / rao + 2 * Omega * u * np.cos(phi) - g + miu * (tao_zx + tao_zy + tao_zz) / rao
+        #return - p_z / rao - g + miu * (tao_zx + tao_zy + tao_zz) / rao
 
 
 class RGrd(Grid):
@@ -90,11 +81,21 @@ class RGrd(Grid):
         super(RGrd, self).__init__('rao', lng_size, lat_size, alt_size, initfn=rinit)
 
     def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None):
-        r_x, r_y, r_z = np.gradient(rao)
         u_x, _, _ = np.gradient(u)
         _, v_y, _ = np.gradient(v)
         _, _, w_z = np.gradient(w)
-        return - u * r_x - v * r_y - w * r_z - rao * (u_x + v_y + w_z)
+        return - rao * (u_x / (a * np.cos(phi)) + v_y / a + w_z) - rao * (v * np.tan(phi) / a + 2 * w / a)
+
+
+class TGrd(Grid):
+    def __init__(self, lng_size, lat_size, alt_size):
+        super(TGrd, self).__init__('T', lng_size, lat_size, alt_size, initfn=tinit)
+
+    def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None):
+        u_x, _, _ = np.gradient(u)
+        _, v_y, _ = np.gradient(v)
+        _, _, w_z = np.gradient(w)
+        return (dH + R * T * (v * np.tan(phi) / a + 2 * w / a - (u_x / (a * np.cos(phi)) + v_y / a + w_z))) / cv
 
 
 class QGrd(Grid):
@@ -102,8 +103,7 @@ class QGrd(Grid):
         super(QGrd, self).__init__('q', lng_size, lat_size, alt_size, initfn=zinit)
 
     def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None):
-        q_x, q_y, q_z = np.gradient(q)
-        return - u * q_x - v * q_y - w * q_z + dQ
+        return dQ
 
 
 class PRel(Relation):

@@ -72,7 +72,7 @@ def normalize(array):
 if __name__ == '__main__':
     map_width = 361
     map_height = 179
-    tile_size = 4
+    tile_size = 3
 
     pygame.init()
     screen = pygame.display.set_mode((map_width * tile_size,map_height * tile_size))
@@ -102,7 +102,7 @@ if __name__ == '__main__':
                 tval = int(pmap[ixlng, ixlat])
                 uval = int(umap[ixlng, ixlat])
                 vval = int(vmap[ixlng, ixlat])
-                tile = pygame.Surface((4, 4))
+                tile = pygame.Surface((3, 3))
                 tile.fill((tval, uval, vval))
                 screen.blit(tile, (ixlng * tile_size, ixlat * tile_size))
 
