@@ -22,7 +22,7 @@ def zinit(**kwargs):
 
 
 def tinit():
-    return 273.15 - 60 * (1 - np.cos(phi)) + 7 * np.cos(theta)
+    return 288.15 - 60 * (1 - np.cos(phi)) + 7 * np.cos(theta)
 
 
 class TLGrd(Grid):
@@ -32,7 +32,8 @@ class TLGrd(Grid):
     def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None):
         contnt = continent()
         capacity = WaterHeatCapacity * 100 * (1 - contnt) + RockHeatCapacity * 100 * contnt
-        return (si - StefanBoltzmann * lt * lt * lt * lt) / capacity
+
+        return (si - StefanBoltzmann * (lt * lt * lt * lt + T * T * T * T / 2)) / capacity
 
 
 class SIGrd(Grid):

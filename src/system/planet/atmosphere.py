@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from system.planet import Relation, Grid, zero, one, alt, theta, phi, a, g, Omega, gamma, gammad, cv, R, miu
+from system.planet import Relation, Grid, zero, one, alt, theta, phi, a, g, Omega, gamma, gammad, cv, R, miu, M
 from system.planet import StefanBoltzmann, WaterHeatCapacity, RockHeatCapacity, SunConst
 
 
@@ -23,11 +23,18 @@ def winit(**kwargs):
 
 
 def tinit(**kwargs):
-    return 278.15 - 0.006 * alt
+    return 288.15 - gamma * alt
+
+
+def pinit(**kwargs):
+    t = tinit()
+    return 101325 * (t / 288.15) ** (g * M / R / gamma)
 
 
 def rinit(**kwargs):
-    return np.exp(- alt / 10000)
+    t = tinit()
+    p = pinit()
+    return p * M / R / t
 
 
 class UGrd(Grid):
@@ -124,7 +131,7 @@ class dQRel(Relation):
 
 coeff = np.copy(one)
 for ix in range(32):
-    coeff[:, :, ix] *= (0.5 ** (ix + 1))
+    coeff[:, :, ix] *= (0.9 * 0.1 ** (ix + 1))
 
 
 class dHRel(Relation):
@@ -133,17 +140,17 @@ class dHRel(Relation):
 
     def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None):
         lt = (lt[:, :, 0]).reshape([361, 179, 1])
-        incomel = StefanBoltzmann * lt * lt * lt * lt
+        income_l = StefanBoltzmann * lt * lt * lt * lt
         outcome = StefanBoltzmann * T * T * T * T
 
-        incomea = np.copy(zero)
+        income_a = np.copy(zero)
         for ix in range(32):
             if ix == 0:
-                incomea[:, :, ix] += outcome[:, :, ix + 1] / 2
+                income_a[:, :, ix] += outcome[:, :, ix + 1] / 2
             elif ix == 31:
-                incomea[:, :, ix] += outcome[:, :, ix - 1] / 2
+                income_a[:, :, ix] += outcome[:, :, ix - 1] / 2
             else:
-                incomea[:, :, ix] += (outcome[:, :, ix - 1] / 2 + outcome[:, :, ix + 1] / 2)
+                income_a[:, :, ix] += (outcome[:, :, ix - 1] / 2 + outcome[:, :, ix + 1] / 2)
 
-        return incomel * coeff + incomea - outcome
+        return income_l * coeff + income_a - outcome
 

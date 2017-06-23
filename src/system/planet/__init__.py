@@ -17,15 +17,16 @@ phi = lat * np.pi / 180
 
 a = 6371000
 
-g = 9.8
+g = 9.80665
 
 Omega = 2 * np.pi / (24 * 3600 * 0.99726966323716)
 
 gamma = - 6.49 / 1000
 gammad = - 9.80 / 1000
 cv = 718.0
-R = 287.0
+R = 8.31447
 miu = 1.72e-1
+M = 0.0289644 # molar mass of dry air, 0.0289644 kg/mol
 
 
 SunConst = 1366
@@ -34,10 +35,30 @@ WaterHeatCapacity = 4200
 RockHeatCapacity = 840
 
 
-def merge(array):
+kernel = np.ones([3, 3]) / 9.0
+
+
+def filter_extreams(array):
     mask = np.isnan(array)
     array[mask] = np.average(array[~mask])
 
+    mx = np.max(array)
+    pmask = np.where(array >= mx)
+    nmask = np.where(array < mx)
+    if len(nmask[1]) != 0:
+        array[pmask] = np.average(array[nmask])
+
+    mn = np.min(array)
+    pmask = np.where(array <= mn)
+    nmask = np.where(array > mn)
+    if len(nmask[1]) != 0:
+        array[pmask] = np.average(array[nmask])
+
+    np.copyto(array, ndimage.convolve(array, kernel))
+
+
+def merge(array):
+    filter_extreams(array)
     avg = (array[0, :] + array[-1, :]) / 2
     array[0, :] = avg[:]
     array[-1, :] = avg[:]
