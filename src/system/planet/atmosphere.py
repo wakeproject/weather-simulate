@@ -11,11 +11,11 @@ def zinit(**kwargs):
 
 
 def uinit(**kwargs):
-    return 0.1 + 0.2 * np.random.random([361, 179, 32])
+    return 0.02 * np.random.random([361, 179, 32]) - 0.01
 
 
 def vinit(**kwargs):
-    return 0.2 * np.random.random([361, 179, 32]) - 0.1
+    return 0.02 * np.random.random([361, 179, 32]) - 0.01
 
 
 def winit(**kwargs):
@@ -23,11 +23,11 @@ def winit(**kwargs):
 
 
 def tinit(**kwargs):
-    return 278.15 - 0.006 * alt - 80 * (1 - np.cos(phi)) + 10 * np.cos(theta) + 0.2 * np.random.random([361, 179, 32])
+    return 278.15 - 0.006 * alt
 
 
 def rinit(**kwargs):
-    return np.exp(- alt / 10000) * (1 - 0.05 * np.cos(6 * theta + alt / 10000 * np.pi / 2)) + 0.2 * np.random.random([361, 179, 32])
+    return np.exp(- alt / 10000)
 
 
 class UGrd(Grid):
@@ -124,7 +124,7 @@ class dQRel(Relation):
 
 coeff = np.copy(one)
 for ix in range(32):
-    coeff[:, :, ix] *= (0.5 ** ix)
+    coeff[:, :, ix] *= (0.5 ** (ix + 1))
 
 
 class dHRel(Relation):
@@ -133,8 +133,17 @@ class dHRel(Relation):
 
     def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None):
         lt = (lt[:, :, 0]).reshape([361, 179, 1])
-        income = StefanBoltzmann * lt * lt * lt * lt
+        incomel = StefanBoltzmann * lt * lt * lt * lt
         outcome = StefanBoltzmann * T * T * T * T
 
-        return income * coeff - outcome
+        incomea = np.copy(zero)
+        for ix in range(32):
+            if ix == 0:
+                incomea[:, :, ix] += outcome[:, :, ix + 1] / 2
+            elif ix == 31:
+                incomea[:, :, ix] += outcome[:, :, ix - 1] / 2
+            else:
+                incomea[:, :, ix] += (outcome[:, :, ix - 1] / 2 + outcome[:, :, ix + 1] / 2)
+
+        return incomel * coeff + incomea - outcome
 

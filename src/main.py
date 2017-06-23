@@ -27,8 +27,8 @@ si = SIGrd(361, 179, 32)
 def evolve():
     s = np.sqrt(u.curval * u.curval + v.curval * v.curval + w.curval * w.curval + 0.00001)
     dt = 1 / np.max(s)
-    print dt
     system.t = system.t + dt
+    print system.t, dt
 
     u.evolve(dt)
     v.evolve(dt)
@@ -94,12 +94,12 @@ if __name__ == '__main__':
 
         evolve()
 
-        pmap = normalize(p.curval[:, :, 0])
+        tmap = normalize(tl.curval[:, :, 0])
         umap = normalize(u.curval[:, :, 0])
         vmap = normalize(v.curval[:, :, 0])
         for ixlng in range(361):
             for ixlat in range(179):
-                tval = int(pmap[ixlng, ixlat])
+                tval = int(tmap[ixlng, ixlat])
                 uval = int(umap[ixlng, ixlat])
                 vval = int(vmap[ixlng, ixlat])
                 tile = pygame.Surface((3, 3))
