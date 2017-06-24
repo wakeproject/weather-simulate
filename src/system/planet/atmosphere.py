@@ -11,7 +11,7 @@ def zinit(**kwargs):
 
 
 def uinit(**kwargs):
-    return 0.02 * np.random.random([361, 179, 32]) - 0.01
+    return 2.5 * (1 - np.cos(6 * phi + alt / 8000 * np.pi / 2)) + 0.02 * np.random.random([361, 179, 32]) - 0.01
 
 
 def vinit(**kwargs):
