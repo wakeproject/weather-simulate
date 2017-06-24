@@ -41,5 +41,7 @@ class SIGrd(Grid):
         super(SIGrd, self).__init__('si', lng_size, lat_size, alt_size, initfn=zinit)
 
     def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None):
-        return 3 * SunConst * np.cos(phi) * relu(np.sin(theta - Omega * system.t))
+        albedo = 0.6 * (lt > 273.15) + 0.1 * (lt < 273.15)
+
+        return albedo * SunConst * np.cos(phi) * relu(np.sin(theta - Omega * system.t))
 

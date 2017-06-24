@@ -26,7 +26,9 @@ si = SIGrd(361, 179, 32)
 
 def evolve():
     s = np.sqrt(u.curval * u.curval + v.curval * v.curval + w.curval * w.curval + 0.00001)
-    dt = 1 / np.max(s)
+    dt = 3 / np.max(s)
+    if dt > 1:
+        dt = 1
     system.t = system.t + dt
     print system.t, dt
 
