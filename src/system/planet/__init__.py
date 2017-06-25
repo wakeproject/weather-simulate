@@ -119,10 +119,11 @@ def filter_extreams(array, dt):
     mx = np.max(array)
     mn = np.min(array)
 
-    xthresh = 0.99 * mx + 0.01 * mn
-    xthresh_less = 0.98 * mx + 0.02 * mn
-    nthresh = 0.01 * mx + 0.99 * mn
-    nthresh_more = 0.02 * mx + 0.98 * mn
+    ratio = - np.log10(dt)
+    xthresh = (1 - 0.001 * ratio) * mx + 0.001 * ratio * mn
+    xthresh_less = (1 - 0.002 * ratio) * mx + 0.002 * ratio * mn
+    nthresh = 0.001 * ratio * mx + (1 - 0.001 * ratio) * mn
+    nthresh_more = 0.002 * ratio * mx + (1 - 0.002 * ratio) * mn
 
     pmask = np.where(array >= xthresh)
     nmask = np.where((array < xthresh) * (array > xthresh_less))
@@ -133,6 +134,8 @@ def filter_extreams(array, dt):
     nmask = np.where((array > nthresh) * (array < nthresh_more))
     if len(nmask[1]) != 0:
         array[pmask] = np.average(array[nmask])
+
+    np.copyto(array, ndimage.gaussian_filter(array, 0.2))
 
 
 def merge(array, dt):

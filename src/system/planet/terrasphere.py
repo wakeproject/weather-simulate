@@ -22,7 +22,7 @@ def zinit(**kwargs):
 
 
 def tinit():
-    return (288.15 - 60 * (1 - np.cos(phi)) + 7 * np.cos(theta)) * bottom
+    return 278.15 * bottom
 
 
 class TLGrd(Grid):

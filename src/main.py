@@ -7,7 +7,6 @@ import system
 
 from system.planet.atmosphere import UGrd, VGrd, WGrd, TGrd, RGrd, QGrd, PRel, dHRel, dQRel
 from system.planet.terrasphere import TLGrd, SIGrd
-from system.planet import a
 
 u = UGrd(361, 179, 32)
 v = VGrd(361, 179, 32)
@@ -64,8 +63,6 @@ def flip():
 
 
 def normalize(array):
-    mask = np.isnan(array)
-    array[mask] = np.average(array[~mask])
     maxv = np.max(array)
     minv = np.min(array)
     return (array - minv) / (maxv - minv + 0.001) * 255
@@ -74,10 +71,10 @@ def normalize(array):
 if __name__ == '__main__':
     map_width = 361
     map_height = 179
-    tile_size = 3
+    tile_size = 6
 
     pygame.init()
-    screen = pygame.display.set_mode((map_width * tile_size,map_height * tile_size))
+    screen = pygame.display.set_mode((map_width * tile_size, map_height * tile_size))
     background = pygame.Surface(screen.get_size())
 
     clock = pygame.time.Clock()
@@ -96,16 +93,25 @@ if __name__ == '__main__':
 
         evolve()
 
-        tmap = normalize(tl.curval[:, :, 0])
-        umap = normalize(u.curval[:, :, 0])
-        vmap = normalize(v.curval[:, :, 0])
+        umap = u.curval[:, :, 0]
+        vmap = v.curval[:, :, 0]
+        tcmap = normalize(tl.curval[:, :, 0])
+        ucmap = normalize(umap)
+        vcmap = normalize(vmap)
         for ixlng in range(361):
             for ixlat in range(179):
-                tval = int(tmap[ixlng, ixlat])
-                uval = int(umap[ixlng, ixlat])
-                vval = int(vmap[ixlng, ixlat])
-                tile = pygame.Surface((3, 3))
-                tile.fill((tval, uval, vval))
+                uval = umap[ixlng, ixlat]
+                vval = vmap[ixlng, ixlat]
+                ucolor = ucmap[ixlng, ixlat]
+                vcolor = vcmap[ixlng, ixlat]
+                tcolor = tcmap[ixlng, ixlat]
+                tile = pygame.Surface((6, 6))
+                tile.fill((int(tcolor), 255 - int(tcolor), 255 - int(tcolor)))
+                if np.absolute(uval) >= np.absolute(vval):
+                    pygame.draw.line(tile, (0, int(ucolor), 0), [3 - 3 * vval / uval, 0], [3 + 3 * vval / uval, 6], 2)
+                else:
+                    pygame.draw.line(tile, (0, 0, int(vcolor)), [3 - 3 * uval / vval, 0], [3 + 3 * uval / vval, 6], 2)
+
                 screen.blit(tile, (ixlng * tile_size, ixlat * tile_size))
 
         flip()

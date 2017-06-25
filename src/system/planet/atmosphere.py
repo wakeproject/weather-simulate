@@ -13,11 +13,11 @@ def zinit(**kwargs):
 
 
 def uinit(**kwargs):
-    return 2.5 * (1 - np.cos(6 * phi + alt / 8000 * np.pi / 2)) + 0.02 * np.random.random([361, 179, 32]) - 0.01
+    return 100 * (1.2 - np.cos(6 * phi + alt / 8000 * np.pi / 2)) + 40 * np.random.random([361, 179, 32]) - 20
 
 
 def vinit(**kwargs):
-    return 0.02 * np.random.random([361, 179, 32]) - 0.01
+    return 100 * np.sin(6 * phi + alt / 8000 * np.pi / 2) + 100 * np.random.random([361, 179, 32]) - 50
 
 
 def winit(**kwargs):
