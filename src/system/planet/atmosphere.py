@@ -5,7 +5,7 @@ import numpy as np
 import system
 
 from system.planet import Relation, Grid, merge
-from system.planet import zero, one, alt, bottom, theta, phi, r, dSr, dV
+from system.planet import zero, one, alt, bottom, theta, phi, r, dSr, dV, dalt
 from system.planet import a, g, Omega, gamma, gammad, cv, cp, R, miu, M, niu_matrix
 from system.planet import StefanBoltzmann, WaterHeatCapacity, RockHeatCapacity, SunConst
 
@@ -38,7 +38,7 @@ def pinit(**kwargs):
 def rinit(**kwargs):
     t = tinit()
     p = pinit()
-    return p * M / R / t
+    return p / R / t
 
 
 class UGrd(Grid):
@@ -135,8 +135,8 @@ class dHRel(Relation):
 
     def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None):
         lt = lt[:, :, 0::32]
-        income_l = StefanBoltzmann * lt * lt * lt * lt * dSr[:, :, 0::32]
-        outcome = StefanBoltzmann * T * T * T * T * dSr
+        income_l = StefanBoltzmann * lt * lt * lt * lt / dalt
+        outcome = StefanBoltzmann * T * T * T * T
 
         income_r = np.copy(zero)
         for ix in range(32):
@@ -147,5 +147,5 @@ class dHRel(Relation):
             else:
                 income_r[:, :, ix] += (outcome[:, :, ix - 1] / 2 + outcome[:, :, ix + 1] / 2)
 
-        return (income_l * coeff + income_r - outcome) / dV
+        return (income_l * coeff + income_r - outcome)
 

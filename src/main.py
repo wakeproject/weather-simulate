@@ -2,6 +2,7 @@
 
 import numpy as np
 import pygame
+import time
 
 import system
 
@@ -27,8 +28,8 @@ si = SIGrd(system.planet.shape)
 def evolve():
     s = np.sqrt(u.curval * u.curval + v.curval * v.curval + w.curval * w.curval + 0.00001)
     dt = 100000 / np.max(s)
-    if dt > 1:
-        dt = 1
+    if dt > 60:
+        dt = 60
     system.t = system.t + dt
     print '----------------------------------------------------'
     print system.t, dt
@@ -90,7 +91,8 @@ if __name__ == '__main__':
     running = True
     lasttile = 0
     while running == True:
-        clock.tick(1)
+        clock.tick(500)
+        time.sleep(3)
         pygame.display.set_caption('FPS: ' + str(clock.get_fps()))
         for event in pygame.event.get():
             if event.type == pygame.QUIT:

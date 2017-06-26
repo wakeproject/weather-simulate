@@ -105,16 +105,16 @@ gamma = - 6.49 / 1000
 gammad = - 9.80 / 1000
 cv = 718.0
 cp = 1005.0
-R = 8.31447
+R = 287
 miu = 1.72e-1
-M = 0.0289644 # molar mass of dry air, 0.0289644 kg/mol
+M = 0.00289644 # molar mass of dry air, 0.00289644 kg/mol
 
 niu = 0.1 # friction between air and land surface
 niu_matrix = niu * bottom
 
 SunConst = 1366
 StefanBoltzmann = 0.0000000567
-WaterHeatCapacity = 4200
+WaterHeatCapacity = 4185.5
 RockHeatCapacity = 840
 WaterDensity = 1000
 RockDensity = 2650
