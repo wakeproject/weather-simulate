@@ -17,7 +17,7 @@ def relu(x):
 
 
 def zinit(**kwargs):
-    return zero
+    return np.copy(zero)
 
 
 def tinit():

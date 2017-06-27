@@ -28,14 +28,15 @@ si = SIGrd(system.planet.shape)
 def evolve():
     s = np.sqrt(u.curval * u.curval + v.curval * v.curval + w.curval * w.curval + 0.00001)
     dt = 100000 / np.max(s)
-    if dt > 60:
-        dt = 60
+    if dt > 1:
+        dt = 1
     system.t = system.t + dt
     print '----------------------------------------------------'
     print system.t, dt
     print 'wind: ', np.max(s), np.min(s), np.mean(s)
     print 'temp', np.max(T.curval - 273.15), np.min(T.curval - 273.15), np.mean(T.curval - 273.15)
     print 'pres', np.max(p.curval / 101325), np.min(p.curval / 101325), np.mean(p.curval / 101325)
+    print 'rao', np.max(rao.curval), np.min(rao.curval), np.mean(rao.curval)
 
     u.evolve(dt)
     v.evolve(dt)
@@ -91,8 +92,8 @@ if __name__ == '__main__':
     running = True
     lasttile = 0
     while running == True:
-        clock.tick(500)
-        time.sleep(3)
+        clock.tick(5)
+        #time.sleep(3)
         pygame.display.set_caption('FPS: ' + str(clock.get_fps()))
         for event in pygame.event.get():
             if event.type == pygame.QUIT:

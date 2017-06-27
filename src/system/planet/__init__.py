@@ -35,19 +35,19 @@ r = a + alt
 theta = lng * np.pi / 180
 phi = lat * np.pi / 180
 
-rx = np.sin(phi) * np.cos(theta)
-ry = np.sin(phi) * np.sin(theta)
-rz = np.cos(phi)
+rx = np.cos(phi) * np.cos(theta)
+ry = np.cos(phi) * np.sin(theta)
+rz = np.sin(phi)
 R = np.concatenate([np.expand_dims(rx, 3), np.expand_dims(ry, 3), np.expand_dims(rz, 3)], axis=3)
 
-thx = np.cos(phi) * np.cos(theta)
-thy = np.cos(phi) * np.sin(theta)
-thz = - np.sin(phi)
+thx = np.sin(phi) * np.cos(theta)
+thy = np.sin(phi) * np.sin(theta)
+thz = - np.cos(phi)
 Th = np.concatenate([np.expand_dims(thx, 3), np.expand_dims(thy, 3), np.expand_dims(thz, 3)], axis=3)
 
 phx = - np.sin(theta)
 phy = np.cos(theta)
-phz = zero
+phz = np.copy(zero)
 Ph = np.concatenate([np.expand_dims(phx, 3), np.expand_dims(phy, 3), np.expand_dims(phz, 3)], axis=3)
 
 dLr = 1 * dr
@@ -58,16 +58,16 @@ dSr = r * r * np.cos(phi) * dth * dph
 dSph = r * np.cos(phi) * dth * dr
 dSth = r * dph * dr
 
-dV = r * r * dr * dth * dph
+dV = dLr * dLph * dLth
 
 
 def dpath(df_th, df_ph, df_r):
-    return df_r[:, :, :, np.newaxis] * R + r[:, :, :, np.newaxis] * df_th[:, :, :, np.newaxis] * Th + r[:, :, :, np.newaxis] * np.sin(theta)[:, :, :, np.newaxis] * df_ph[:, :, :, np.newaxis] * Ph
+    return df_r[:, :, :, np.newaxis] * R + r[:, :, :, np.newaxis] * df_th[:, :, :, np.newaxis] * Th + r[:, :, :, np.newaxis] * np.cos(phi)[:, :, :, np.newaxis] * df_ph[:, :, :, np.newaxis] * Ph
 
 
 def grad(f):
     f_th, f_ph, f_r = np.gradient(f)
-    return f_r[:, :, :, np.newaxis] * R + f_th[:, :, :, np.newaxis] / r[:, :, :, np.newaxis] * Th + f_ph[:, :, :, np.newaxis] / (r * np.sin(phi))[:, :, :, np.newaxis] * Ph
+    return f_r[:, :, :, np.newaxis] * R + f_th[:, :, :, np.newaxis] / r[:, :, :, np.newaxis] * Th + f_ph[:, :, :, np.newaxis] / (r * np.cos(phi))[:, :, :, np.newaxis] * Ph
 
 
 def div(F):
@@ -78,7 +78,7 @@ def div(F):
     _, val_ph, _ = np.gradient(Fph)
     _, _, val_r = np.gradient(Fr)
 
-    return (val_th + val_ph) / r / np.sin(theta) + val_r / r / r
+    return (val_th + val_ph) / r / np.cos(theta) + val_r / r / r
 
 
 def curl(F):
@@ -86,8 +86,8 @@ def curl(F):
     Fph = F[:, :, :, 1]
     Fr = F[:, :, :, 2]
 
-    val_r = (np.gradient(Fph * np.sin(theta))[0] - np.gradient(Fth)[1]) / r / np.sin(theta)
-    val_th = (np.gradient(Fr)[1] / np.sin(theta) - np.gradient(r * Fph)[2]) / r
+    val_r = (np.gradient(Fph * np.cos(phi))[0] - np.gradient(Fth)[1]) / r / np.cos(phi)
+    val_th = (np.gradient(Fr)[1] / np.cos(phi) - np.gradient(r * Fph)[2]) / r
     val_ph = (np.gradient(r * Fth)[2] - np.gradient(Fr)[0]) / r
 
     return val_r[:, :, :, np.newaxis] * R + val_th[:, :, :, np.newaxis] * Th + val_ph[:, :, :, np.newaxis] * Ph
@@ -101,13 +101,13 @@ g = 9.80665
 
 Omega = 2 * np.pi / (24 * 3600 * 0.99726966323716)
 
-gamma = - 6.49 / 1000
-gammad = - 9.80 / 1000
+gamma = 6.49 / 1000
+gammad = 9.80 / 1000
 cv = 718.0
 cp = 1005.0
 R = 287
 miu = 1.72e-1
-M = 0.00289644 # molar mass of dry air, 0.00289644 kg/mol
+M = 0.0289644 # molar mass of dry air, 0.0289644 kg/mol
 
 niu = 0.1 # friction between air and land surface
 niu_matrix = niu * bottom
@@ -140,8 +140,7 @@ def inject_random_nearby(i, j, thresh, speed, src, tgt):
             replacement = speed[i, j]
         else:
             tries = 3
-
-    tgt[i, j] = src[i, j]
+            tgt[i, j] = src[i, j]
 
 
 def filter_extream_scalar(array):
@@ -250,13 +249,20 @@ class Grid(object):
                                                       compv=context['v'].curval[:, :, i],
                                                       compw=context['w'].curval[:, :, i],))
             else:
-                np.copyto(self.nxtval[:, :, i], merge(self.name, val[:, :, i], dt))
+                np.copyto(self.nxtval[:, :, i], merge(self.name, val[:, :, i]))
 
     def step(self, ** kwargs):
         return self.nxtval
 
     def swap(self):
-        np.copyto(self.curval, self.nxtval)
+        for i in range(32):
+            if self.name in {'u', 'v', 'w'}:
+                np.copyto(self.curval[:, :, i], merge(self.name, self.nxtval[:, :, i],
+                                                      compu=context['u'].nxtval[:, :, i],
+                                                      compv=context['v'].nxtval[:, :, i],
+                                                      compw=context['w'].nxtval[:, :, i],))
+            else:
+                np.copyto(self.curval[:, :, i], merge(self.name, self.nxtval[:, :, i]))
 
 
 class Relation(object):
@@ -267,6 +273,7 @@ class Relation(object):
         self.name = name
         context[name] = self
 
+        self.drvval = np.zeros([lng_size, lat_size, alt_size])
         self.nxtval = np.zeros([lng_size, lat_size, alt_size])
         if initfn:
             self.curval = initfn()
@@ -278,6 +285,7 @@ class Relation(object):
         val = self.step(**kwargs)
         for i in range(32):
             np.copyto(self.nxtval[:, :, i], merge(self.name, val[:, :, i], dt))
+        self.drvval[:, :, :] = (self.nxtval - self.curval) / dt
 
     def step(self, ** kwargs):
         return self.nxtval

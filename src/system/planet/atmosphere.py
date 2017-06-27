@@ -4,8 +4,8 @@ import numpy as np
 
 import system
 
-from system.planet import Relation, Grid, merge
-from system.planet import zero, one, alt, bottom, theta, phi, r, dSr, dV, dalt
+from system.planet import Relation, Grid, div
+from system.planet import zero, one, alt, bottom, theta, phi, r, dSr, dSth, dSph, dV, dalt, Th, Ph, R
 from system.planet import a, g, Omega, gamma, gammad, cv, cp, R, miu, M, niu_matrix
 from system.planet import StefanBoltzmann, WaterHeatCapacity, RockHeatCapacity, SunConst
 
@@ -27,12 +27,11 @@ def winit(**kwargs):
 
 
 def tinit(**kwargs):
-    return 288.15 + gamma * alt
+    return 288.15 - gamma * alt
 
 
 def pinit(**kwargs):
-    t = tinit()
-    return 101325 * (t / 288.15) ** (g * M / R / gamma)
+    return 101325 * np.exp(- g * M * alt / 288.15 / 8.31447)
 
 
 def rinit(**kwargs):
@@ -80,11 +79,13 @@ class RGrd(Grid):
         super(RGrd, self).__init__('rao', lng_size, lat_size, alt_size, initfn=rinit)
 
     def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None):
+        #vec = u[:, :, :, np.newaxis] * Th + v[:, :, :, np.newaxis] * Ph + w[:, :, :, np.newaxis] * R
+        #return - div(rao[:, :, :, np.newaxis] * vec)
         u_th, _, _ = np.gradient(u)
         _, v_ph, _ = np.gradient(v)
         _, _, w_r = np.gradient(w)
 
-        return rao * (v / r * np.tan(phi) - 2 * w / r - u_th / (r * np.cos(phi)) - v_ph / r - w_r)
+        return rao * (u_th * dSth + v_ph * dSph + w_r * dSr) / dV
 
 
 class TGrd(Grid):
@@ -93,7 +94,9 @@ class TGrd(Grid):
         super(TGrd, self).__init__('T', lng_size, lat_size, alt_size, initfn=tinit)
 
     def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None):
-        return (dH + R * T * system.planet.context['rao'].step(u, v, w, rao, p, T, q, dQ, dH, lt, si)) / (cp - rao * R)
+        dp = system.planet.context['p'].drvval
+        dval = dp / rao
+        return (dH + dval) / cp
 
 
 class QGrd(Grid):
@@ -135,8 +138,8 @@ class dHRel(Relation):
 
     def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None):
         lt = lt[:, :, 0::32]
-        income_l = StefanBoltzmann * lt * lt * lt * lt / dalt
-        outcome = StefanBoltzmann * T * T * T * T
+        income_l = StefanBoltzmann * lt * lt * lt * lt * dSr / dV
+        outcome = StefanBoltzmann * T * T * T * T * dSr / dV
 
         income_r = np.copy(zero)
         for ix in range(32):
