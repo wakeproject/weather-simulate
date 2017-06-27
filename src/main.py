@@ -15,7 +15,7 @@ v = VGrd(system.planet.shape)
 w = WGrd(system.planet.shape)
 T = TGrd(system.planet.shape)
 rao = RGrd(system.planet.shape)
-Q = QGrd(system.planet.shape)
+q = QGrd(system.planet.shape)
 
 p = PRel(system.planet.shape)
 dH = dHRel(system.planet.shape)
@@ -28,8 +28,8 @@ si = SIGrd(system.planet.shape)
 def evolve():
     s = np.sqrt(u.curval * u.curval + v.curval * v.curval + w.curval * w.curval + 0.00001)
     dt = 100000 / np.max(s)
-    if dt > 1:
-        dt = 1
+    if dt > 0.1:
+        dt = 0.1
     system.t = system.t + dt
     print '----------------------------------------------------'
     print system.t, dt
@@ -37,13 +37,14 @@ def evolve():
     print 'temp', np.max(T.curval - 273.15), np.min(T.curval - 273.15), np.mean(T.curval - 273.15)
     print 'pres', np.max(p.curval / 101325), np.min(p.curval / 101325), np.mean(p.curval / 101325)
     print 'rao', np.max(rao.curval), np.min(rao.curval), np.mean(rao.curval)
+    print 'humd', np.max(q.curval), np.min(q.curval), np.mean(q.curval)
 
     u.evolve(dt)
     v.evolve(dt)
     w.evolve(dt)
     T.evolve(dt)
     rao.evolve(dt)
-    Q.evolve(dt)
+    q.evolve(dt)
 
     p.evolve(dt)
     dH.evolve(dt)
@@ -59,7 +60,7 @@ def flip():
     w.swap()
     T.swap()
     rao.swap()
-    Q.swap()
+    q.swap()
 
     p.swap()
     dH.swap()
@@ -78,7 +79,7 @@ def normalize(array):
 if __name__ == '__main__':
     map_width = system.planet.shape[0]
     map_height = system.planet.shape[1]
-    tile_size = 12
+    tile_size = 8
 
     pygame.init()
     screen = pygame.display.set_mode((map_width * tile_size, map_height * tile_size))
@@ -93,7 +94,7 @@ if __name__ == '__main__':
     lasttile = 0
     while running == True:
         clock.tick(5)
-        #time.sleep(3)
+        time.sleep(2)
         pygame.display.set_caption('FPS: ' + str(clock.get_fps()))
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -103,24 +104,33 @@ if __name__ == '__main__':
 
         umap = u.curval[:, :, 0]
         vmap = v.curval[:, :, 0]
-        tcmap = normalize(tl.curval[:, :, 0])
-        scmap = normalize(np.sqrt(umap * umap + vmap * vmap))
+        smap = np.sqrt(umap * umap + vmap * vmap + 0.001)
+        mxs = np.max(smap)
+
+        tcmap = normalize(T.curval[:, :, 0])
+        scmap = normalize(smap)
         ucmap = normalize(umap)
         vcmap = normalize(vmap)
         for ixlng in range(system.planet.shape[0]):
             for ixlat in range(system.planet.shape[1]):
                 uval = umap[ixlng, ixlat]
                 vval = vmap[ixlng, ixlat]
+                sval = smap[ixlng, ixlat]
+
                 scolor = scmap[ixlng, ixlat]
                 tcolor = tcmap[ixlng, ixlat]
                 ucolor = ucmap[ixlng, ixlat]
                 vcolor = vcmap[ixlng, ixlat]
                 tile = pygame.Surface((tile_size, tile_size))
                 tile.fill((int(tcolor * 2 / 3), 255 - int(tcolor * 2 / 3), 255 - int(tcolor * 2 / 3)))
-                if np.absolute(uval) >= np.absolute(vval):
-                    pygame.draw.aaline(tile, (int(scolor), 255 - int(ucolor), 255 - int(vcolor)), [6 - 6 * vval / uval, 0], [6 + 6 * vval / uval, 112], True)
-                else:
-                    pygame.draw.aaline(tile, (int(scolor), 255 - int(ucolor), 255 - int(vcolor)), [0, 6 - 6 * uval / vval], [12, 6 + 6 * uval / vval], True)
+
+
+                if ixlng % 3 == 0 and ixlat % 3 == 0:
+                    length = int(24 * sval / mxs)
+                    if np.absolute(uval) >= np.absolute(vval):
+                        pygame.draw.aaline(tile, (int(scolor), 255 - int(ucolor), 255 - int(vcolor)), [6 - length * vval / uval, 0], [6 + length * vval / uval, 112], True)
+                    else:
+                        pygame.draw.aaline(tile, (int(scolor), 255 - int(ucolor), 255 - int(vcolor)), [0, 6 - length * uval / vval], [12, 6 + length * uval / vval], True)
 
                 screen.blit(tile, (ixlng * tile_size, ixlat * tile_size))
 

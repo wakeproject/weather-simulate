@@ -7,7 +7,9 @@ import system
 from system.planet import Relation, Grid, div
 from system.planet import zero, one, alt, bottom, theta, phi, r, dSr, dSth, dSph, dV, dalt, Th, Ph, R
 from system.planet import a, g, Omega, gamma, gammad, cv, cp, R, miu, M, niu_matrix
-from system.planet import StefanBoltzmann, WaterHeatCapacity, RockHeatCapacity, SunConst
+from system.planet import StefanBoltzmann, WaterHeatCapacity, RockHeatCapacity, WaterDensity, SunConst
+
+from system.planet.terrasphere import continent
 
 
 def zinit(**kwargs):
@@ -15,23 +17,23 @@ def zinit(**kwargs):
 
 
 def uinit(**kwargs):
-    return np.copy(zero)
+    return 0.2 * np.random.random(system.planet.shape) - 0.1
 
 
 def vinit(**kwargs):
-    return np.copy(zero)
+    return 0.2 * np.random.random(system.planet.shape) - 0.1
 
 
 def winit(**kwargs):
-    return np.copy(zero)
+    return 0.2 * np.random.random(system.planet.shape) - 0.1
 
 
 def tinit(**kwargs):
-    return 288.15 - gamma * alt
+    return 288.15 - gamma * alt + 2 * np.random.random(system.planet.shape) - 1
 
 
 def pinit(**kwargs):
-    return 101325 * np.exp(- g * M * alt / 288.15 / 8.31447)
+    return 101325 * np.exp(- g * M * alt / 288.15 / 8.31447) + 100 * np.random.random(system.planet.shape) - 50
 
 
 def rinit(**kwargs):
@@ -46,9 +48,9 @@ class UGrd(Grid):
         super(UGrd, self).__init__('u', lng_size, lat_size, alt_size, initfn=uinit)
 
     def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None):
-        p_th, _, _ = np.gradient(p)
+        a_th, _, _ = np.gradient(p * dSth) / rao / dV
 
-        return u * v / r * np.tan(phi) - u * w / r - p_th / (rao * r * np.cos(phi)) - 2 * Omega * (w * np.cos(phi) - v * np.sin(phi))
+        return u * v / r * np.tan(phi) - u * w / r - 2 * Omega * (w * np.cos(phi) - v * np.sin(phi)) + a_th - u * 0.04 * bottom
 
 
 class VGrd(Grid):
@@ -57,9 +59,9 @@ class VGrd(Grid):
         super(VGrd, self).__init__('v', lng_size, lat_size, alt_size, initfn=vinit)
 
     def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None):
-        _, p_ph, _ = np.gradient(p)
+        _, a_ph, _ = np.gradient(p * dSph) / rao / dV
 
-        return - u * u / r * np.tan(phi) - v * w / r - p_ph / (rao * r) - 2 * Omega * u * np.sin(phi)
+        return - u * u / r * np.tan(phi) - v * w / r - 2 * Omega * u * np.sin(phi) + a_ph - v * 0.04 * bottom
 
 
 class WGrd(Grid):
@@ -68,9 +70,9 @@ class WGrd(Grid):
         super(WGrd, self).__init__('w', lng_size, lat_size, alt_size, initfn=winit)
 
     def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None):
-        _, _, p_r = np.gradient(p)
+        _, _, a_r = np.gradient(p * dSr) / rao / dV
 
-        return (u * u + v * v) / r - p_r / rao + 2 * Omega * u * np.cos(phi) - g
+        return (u * u + v * v) / r + 2 * Omega * u * np.cos(phi) - g + a_r
 
 
 class RGrd(Grid):
@@ -79,13 +81,11 @@ class RGrd(Grid):
         super(RGrd, self).__init__('rao', lng_size, lat_size, alt_size, initfn=rinit)
 
     def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None):
-        #vec = u[:, :, :, np.newaxis] * Th + v[:, :, :, np.newaxis] * Ph + w[:, :, :, np.newaxis] * R
-        #return - div(rao[:, :, :, np.newaxis] * vec)
         u_th, _, _ = np.gradient(u)
         _, v_ph, _ = np.gradient(v)
         _, _, w_r = np.gradient(w)
 
-        return rao * (u_th * dSth + v_ph * dSph + w_r * dSr) / dV
+        return rao * (u_th * dSth + v_ph * dSph + w_r * dSr * (1 - bottom)) / dV
 
 
 class TGrd(Grid):
@@ -95,8 +95,7 @@ class TGrd(Grid):
 
     def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None):
         dp = system.planet.context['p'].drvval
-        dval = dp / rao
-        return (dH + dval) / cp
+        return dH / dV / rao / cp + dp / rao / cp
 
 
 class QGrd(Grid):
@@ -105,7 +104,11 @@ class QGrd(Grid):
         super(QGrd, self).__init__('q', lng_size, lat_size, alt_size, initfn=zinit)
 
     def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None):
-        return dQ
+        u_th, _, _ = np.gradient(u)
+        _, v_ph, _ = np.gradient(v)
+        _, _, w_r = np.gradient(w)
+
+        return q * (u_th * dSth + v_ph * dSph + w_r * dSr * (1 - bottom)) / dV + dQ
 
 
 class PRel(Relation):
@@ -123,12 +126,15 @@ class dQRel(Relation):
         super(dQRel, self).__init__('dQ', lng_size, lat_size, alt_size)
 
     def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None):
-        return zero
+        dT = system.planet.context['T'].drvval
+        cntnt = continent()
+
+        return + 0.00001 * (dT > 0) * cntnt + 0.0001 * (dT > 0) * (1 - cntnt) - 0.0001 * (dT < 0) * (q > 0.0001)
 
 
 coeff = np.copy(one)
 for ix in range(32):
-    coeff[:, :, ix] *= (0.9 * 0.1 ** (ix + 1))
+    coeff[:, :, ix] *= (0.1 * 0.9 ** (ix + 1))
 
 
 class dHRel(Relation):
@@ -138,8 +144,11 @@ class dHRel(Relation):
 
     def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None):
         lt = lt[:, :, 0::32]
-        income_l = StefanBoltzmann * lt * lt * lt * lt * dSr / dV
-        outcome = StefanBoltzmann * T * T * T * T * dSr / dV
+        income_l = StefanBoltzmann * lt * lt * lt * lt * dSr
+        outcome = StefanBoltzmann * T * T * T * T * dSr
+
+        fusion = + (lt >= 273.15) * (lt < 275) * dSr * bottom * 0.01 * WaterDensity * 333550 \
+                 - (lt > 271) * (lt <= 273.155) * dSr * bottom * 0.01 * WaterDensity * 333550
 
         income_r = np.copy(zero)
         for ix in range(32):
@@ -150,5 +159,5 @@ class dHRel(Relation):
             else:
                 income_r[:, :, ix] += (outcome[:, :, ix - 1] / 2 + outcome[:, :, ix + 1] / 2)
 
-        return (income_l * coeff + income_r - outcome)
+        return (income_l * coeff + income_r - outcome) - 2266000 * dQ * dV + fusion
 

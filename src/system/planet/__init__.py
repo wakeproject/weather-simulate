@@ -7,8 +7,8 @@ from numpy.random import random
 
 context = {}
 
-dlng = 3.0
-dlat = 3.0
+dlng = 1.5
+dlat = 1.5
 dalt = 500.0
 
 a = 6371000
@@ -165,7 +165,7 @@ def filter_extream_scalar(array):
     if len(nmask[1]) != 0:
         array[pmask] = np.average(array[nmask])
 
-    np.copyto(array, ndimage.gaussian_filter(array, 0.2))
+    np.copyto(array, ndimage.gaussian_filter(array, 0.6))
 
 
 def filter_extream_vector(name, array, u, v, w):
@@ -186,6 +186,8 @@ def filter_extream_vector(name, array, u, v, w):
                     inject_random_nearby(i, j, xthresh, speed, v, array)
                 if name == 'w':
                     inject_random_nearby(i, j, xthresh, speed, w, array)
+
+    np.copyto(array, ndimage.gaussian_filter(array, 0.3))
 
 
 def combine_scalar(array):
@@ -232,6 +234,7 @@ class Grid(object):
         self.name = name
         context[name] = self
 
+        self.drvval = np.zeros([lng_size, lat_size, alt_size])
         self.nxtval = np.zeros([lng_size, lat_size, alt_size])
         if initfn:
             self.curval = initfn()
@@ -250,6 +253,7 @@ class Grid(object):
                                                       compw=context['w'].curval[:, :, i],))
             else:
                 np.copyto(self.nxtval[:, :, i], merge(self.name, val[:, :, i]))
+        self.drvval[:, :, :] = (self.nxtval - self.curval) / dt
 
     def step(self, ** kwargs):
         return self.nxtval
