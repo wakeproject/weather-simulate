@@ -5,7 +5,7 @@ import numpy as np
 import system
 
 from system.planet import Relation, Grid, div
-from system.planet import zero, one, alt, bottom, theta, phi, r, dSr, dSth, dSph, dV, dalt, Th, Ph, R
+from system.planet import zero, one, alt, bottom, top, theta, phi, r, dSr, dSth, dSph, dV, dalt, Th, Ph, R
 from system.planet import a, g, Omega, gamma, gammad, cv, cp, R, miu, M, niu_matrix
 from system.planet import StefanBoltzmann, WaterHeatCapacity, RockHeatCapacity, WaterDensity, SunConst
 
@@ -50,7 +50,7 @@ class UGrd(Grid):
     def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None):
         a_th, _, _ = np.gradient(p * dSth) / rao / dV
 
-        return u * v / r * np.tan(phi) - u * w / r - 2 * Omega * (w * np.cos(phi) - v * np.sin(phi)) + a_th - u * 0.04 * bottom
+        return u * v / r * np.tan(phi) - u * w / r - 2 * Omega * (w * np.cos(phi) - v * np.sin(phi)) + a_th
 
 
 class VGrd(Grid):
@@ -61,7 +61,7 @@ class VGrd(Grid):
     def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None):
         _, a_ph, _ = np.gradient(p * dSph) / rao / dV
 
-        return - u * u / r * np.tan(phi) - v * w / r - 2 * Omega * u * np.sin(phi) + a_ph - v * 0.04 * bottom
+        return - u * u / r * np.tan(phi) - v * w / r - 2 * Omega * u * np.sin(phi) + a_ph
 
 
 class WGrd(Grid):
@@ -72,7 +72,8 @@ class WGrd(Grid):
     def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None):
         _, _, a_r = np.gradient(p * dSr) / rao / dV
 
-        return (u * u + v * v) / r + 2 * Omega * u * np.cos(phi) - g + a_r
+        dw = (u * u + v * v) / r + 2 * Omega * u * np.cos(phi) - g + a_r
+        return dw * (1 - bottom) * (1 - top) + (w > 0) * dw * bottom + (w < 0) * dw * top
 
 
 class RGrd(Grid):

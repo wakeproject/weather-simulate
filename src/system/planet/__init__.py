@@ -7,8 +7,8 @@ from numpy.random import random
 
 context = {}
 
-dlng = 1.5
-dlat = 1.5
+dlng = 2
+dlat = 2
 dalt = 500.0
 
 a = 6371000
@@ -22,6 +22,10 @@ zero = np.zeros(lng.shape)
 
 bottom = np.zeros(lng.shape)
 bottom[:, :, 0] = 1
+top = np.zeros(lng.shape)
+top[:, :, -1] = 1
+
+
 north_pole = np.zeros(lng.shape)
 north_pole[:, 0, :] = 1
 south_pole = np.zeros(lng.shape)
@@ -187,7 +191,9 @@ def filter_extream_vector(name, array, u, v, w):
                 if name == 'w':
                     inject_random_nearby(i, j, xthresh, speed, w, array)
 
-    np.copyto(array, ndimage.gaussian_filter(array, 0.3))
+    alpha = 0.06 * np.log(np.mean(u * u + v * v + w * w) + np.e)
+    beta = np.exp(- np.mean(u * u + v * v + w * w) / 3000)
+    np.copyto(array, beta * ndimage.gaussian_filter(array, alpha))
 
 
 def combine_scalar(array):
