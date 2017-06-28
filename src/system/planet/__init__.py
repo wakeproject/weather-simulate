@@ -116,7 +116,14 @@ M = 0.0289644 # molar mass of dry air, 0.0289644 kg/mol
 niu = 0.1 # friction between air and land surface
 niu_matrix = niu * bottom
 
+
 SunConst = 1366
+shtAbsorbLand = 168 / 342
+shtAbsorbAir = 50 / 342
+landAbsorbAir = (350 + 24 + 78) / (390 + 24 + 78)
+landOutputRatio = (390 + 24 + 78) / 390
+
+
 StefanBoltzmann = 0.0000000567
 WaterHeatCapacity = 4185.5
 RockHeatCapacity = 840

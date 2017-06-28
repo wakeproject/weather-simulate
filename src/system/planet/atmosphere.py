@@ -5,11 +5,16 @@ import numpy as np
 import system
 
 from system.planet import Relation, Grid, div
-from system.planet import zero, one, alt, bottom, top, theta, phi, r, dSr, dSth, dSph, dV, dlng, dlat, dalt, Th, Ph, R, dpath
+from system.planet import zero, one, alt, bottom, top, theta, phi, r, dSr, dSth, dSph, dV, lng, dlng, dlat, dalt, Th, Ph, R, dpath
 from system.planet import a, g, Omega, gamma, gammad, cv, cp, R, miu, M, niu_matrix
 from system.planet import StefanBoltzmann, WaterHeatCapacity, RockHeatCapacity, WaterDensity, SunConst
+from system.planet import shtAbsorbLand, shtAbsorbAir
 
 from system.planet.terrasphere import continent
+
+
+def relu(x):
+    return x * (x > 0)
 
 
 def zinit(**kwargs):
@@ -56,10 +61,6 @@ class UGrd(Grid):
 
         f = 0.001 * (f_th + f_ph + f_r) / rao / dV
 
-        print '----------------------------------------'
-        print 'u', np.max(f), np.min(f), np.mean(f)
-        print 'u', np.max(a_th), np.min(a_th), np.mean(a_th)
-
         return u * v / r * np.tan(phi) - u * w / r - 2 * Omega * (w * np.cos(phi) - v * np.sin(phi)) + a_th - f
 
 
@@ -77,10 +78,6 @@ class VGrd(Grid):
 
         f = 0.001 * (f_th + f_ph + f_r) / rao / dV * r
 
-        print '----------------------------------------'
-        print 'v', np.max(f), np.min(f), np.mean(f)
-        print 'v', np.max(a_ph), np.min(a_ph), np.mean(a_ph)
-
         return - u * u / r * np.tan(phi) - v * w / r - 2 * Omega * u * np.sin(phi) + a_ph - f
 
 
@@ -97,10 +94,6 @@ class WGrd(Grid):
         f_r = np.gradient(rao * w * dSr * w)[2]
 
         f = 0.001 * (f_th + f_ph + f_r) / rao / dV * dalt
-
-        print '----------------------------------------'
-        print 'w', np.max(f), np.min(f), np.mean(f)
-        print 'w', np.max(a_r), np.min(a_r), np.mean(a_r)
 
         dw = (u * u + v * v) / r + 2 * Omega * u * np.cos(phi) - g + a_r - f
         return dw * (1 - bottom) * (1 - top) + (w > 0) * dw * bottom + (w < 0) * dw * top
@@ -160,7 +153,7 @@ class dQRel(Relation):
         dT = system.planet.context['T'].drvval
         cntnt = continent()
 
-        return + 0.00001 * (dT > 0) * cntnt + 0.0001 * (dT > 0) * (1 - cntnt) - 0.0001 * (dT < 0) * (q > 0.0001)
+        return + 0.0001 * T * T * T / 273.15 / (373.15 - T) / (373.15 - T) * (dT > 0) * (1 - cntnt) + 0.00001 * (dT > 0) * cntnt - 0.00001 * (dT < 0) * (q > 0.0001)
 
 
 coeff = np.copy(one)
@@ -174,9 +167,17 @@ class dHRel(Relation):
         super(dHRel, self).__init__('dH', lng_size, lat_size, alt_size)
 
     def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None):
+        doy = np.mod(system.t / 3600 / 24, 365.24)
+        hod = np.mod(system.t / 3600 - lng / 15.0, 24)
+        ha = 2 * np.pi * hod / 24
+        decline = - 23.44 / 180 * np.pi * np.cos(2 * np.pi * (doy + 10) / 365)
+        sza_coeff = np.sin(phi) * np.sin(decline) + np.cos(phi) * np.cos(decline) * np.cos(ha)
+
+        income_s = relu(sza_coeff) * shtAbsorbLand * SunConst / 32
+
         lt = lt[:, :, 0::32]
-        income_l = StefanBoltzmann * lt * lt * lt * lt * dSr
-        outcome = StefanBoltzmann * T * T * T * T * dSr
+        income_l = StefanBoltzmann * lt * lt * lt * lt * dSr * (lt > 0)
+        outcome = StefanBoltzmann * T * T * T * T * dSr * (T > 0)
 
         fusion = + (lt >= 273.15) * (lt < 275) * dSr * bottom * 0.01 * WaterDensity * 333550 \
                  - (lt > 271) * (lt <= 273.155) * dSr * bottom * 0.01 * WaterDensity * 333550
@@ -184,11 +185,11 @@ class dHRel(Relation):
         income_r = np.copy(zero)
         for ix in range(32):
             if ix == 0:
-                income_r[:, :, ix] += outcome[:, :, ix + 1] / 2
+                income_r[:, :, ix] += outcome[:, :, ix + 1] / 3
             elif ix == 31:
-                income_r[:, :, ix] += outcome[:, :, ix - 1] / 2
+                income_r[:, :, ix] += outcome[:, :, ix - 1] / 3
             else:
-                income_r[:, :, ix] += (outcome[:, :, ix - 1] / 2 + outcome[:, :, ix + 1] / 2)
+                income_r[:, :, ix] += (outcome[:, :, ix - 1] / 3 + outcome[:, :, ix + 1] / 2)
 
-        return (income_l * coeff + income_r - outcome) - 2266000 * dQ * dV + fusion
+        return (income_s + income_l * coeff + income_r - outcome) - 2266000 * dQ * dV + fusion
 
