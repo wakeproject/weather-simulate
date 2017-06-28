@@ -176,7 +176,7 @@ def filter_extream_scalar(name, array):
     if len(nmask[1]) != 0:
         array[pmask] = np.average(array[nmask])
 
-    np.copyto(array, ndimage.gaussian_filter(array, 0.2 * (np.max(context['T'].curval) - np.min(context['T'].curval)) / 150.0))
+    #np.copyto(array, ndimage.gaussian_filter(array, 0.2 * (np.max(context['T'].curval) - np.min(context['T'].curval)) / 150.0))
 
 
 def filter_extream_vector(name, array, u, v, w):
@@ -198,7 +198,7 @@ def filter_extream_vector(name, array, u, v, w):
                 if name == 'w':
                     inject_random_nearby(i, j, xthresh, speed, w, array)
 
-    np.copyto(array, ndimage.gaussian_filter(array, 1))
+    np.copyto(array, 0.99 * array)
 
 
 def combine_scalar(array):

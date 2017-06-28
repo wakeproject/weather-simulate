@@ -29,7 +29,7 @@ cntn = continent()
 
 def evolve():
     s = np.sqrt(u.curval * u.curval + v.curval * v.curval + w.curval * w.curval + 0.00001)
-    dt = 10 / np.max(s)
+    dt = 100 / np.max(s)
     if dt > 1:
         dt = 1
     system.t = system.t + dt
@@ -98,7 +98,7 @@ if __name__ == '__main__':
     lasttile = 0
     while running == True:
         clock.tick(5)
-        time.sleep(2)
+        time.sleep(5)
         pygame.display.set_caption('FPS: ' + str(clock.get_fps()))
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -107,11 +107,14 @@ if __name__ == '__main__':
         evolve()
 
         tmap = T.curval[:, :, 0]
-        umap = 0.05 * u.curval[:, :, 0] + 0.95 * u.curval[:, :, 1]
-        vmap = 0.05 * v.curval[:, :, 0] + 0.95 * v.curval[:, :, 1]
-        wmap = 0.05 * w.curval[:, :, 0] + 0.95 * w.curval[:, :, 1]
+        umap = 0.5 * u.curval[:, :, 0] + 0.5 * u.curval[:, :, 1]
+        vmap = 0.5 * v.curval[:, :, 0] + 0.5 * v.curval[:, :, 1]
+        wmap = 0.5 * w.curval[:, :, 0] + 0.5 * w.curval[:, :, 1]
         smap = np.sqrt(umap * umap + vmap * vmap + wmap * wmap + 0.001)
         mxs = np.max(smap)
+        mns = np.min(smap)
+        mms = np.mean(smap)
+        print 'wind(O): ', mxs, mns, mms
 
         tcmap = normalize(T.curval[:, :, 0])
         scmap = normalize(smap)

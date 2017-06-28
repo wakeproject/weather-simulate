@@ -59,7 +59,7 @@ class UGrd(Grid):
         f_ph = np.gradient(rao * u * dSth * v)[1]
         f_r = np.gradient(rao * u * dSth * w)[2]
 
-        f = 0.001 * (f_th + f_ph + f_r) / rao / dV
+        f = 0.0001 * (f_th + f_ph + f_r) / rao / dV
 
         return u * v / r * np.tan(phi) - u * w / r - 2 * Omega * (w * np.cos(phi) - v * np.sin(phi)) + a_th - f
 
@@ -76,7 +76,7 @@ class VGrd(Grid):
         f_ph = np.gradient(rao * v * dSph * v)[1]
         f_r = np.gradient(rao * v * dSph * w)[2]
 
-        f = 0.001 * (f_th + f_ph + f_r) / rao / dV * r
+        f = 0.0001 * (f_th + f_ph + f_r) / rao / dV * r
 
         return - u * u / r * np.tan(phi) - v * w / r - 2 * Omega * u * np.sin(phi) + a_ph - f
 
@@ -93,7 +93,7 @@ class WGrd(Grid):
         f_ph = np.gradient(rao * w * dSr * v)[1]
         f_r = np.gradient(rao * w * dSr * w)[2]
 
-        f = 0.001 * (f_th + f_ph + f_r) / rao / dV * dalt
+        f = 0.0001 * (f_th + f_ph + f_r) / rao / dV * dalt
 
         dw = (u * u + v * v) / r + 2 * Omega * u * np.cos(phi) - g + a_r - f
         return dw * (1 - bottom) * (1 - top) + (w > 0) * dw * bottom + (w < 0) * dw * top
@@ -173,7 +173,23 @@ class dHRel(Relation):
         decline = - 23.44 / 180 * np.pi * np.cos(2 * np.pi * (doy + 10) / 365)
         sza_coeff = np.sin(phi) * np.sin(decline) + np.cos(phi) * np.cos(decline) * np.cos(ha)
 
-        income_s = relu(sza_coeff) * shtAbsorbLand * SunConst / 32
+        dT = system.planet.context['T'].drvval
+        absorbS = np.sqrt(q) * (dT < 0) * (q > 0.0001)
+        absorbL = np.sqrt(np.sqrt(q)) * (dT < 0) * (q > 0.0001)
+
+        reachnessS = np.ones((system.planet.shape[0], system.planet.shape[1], system.planet.shape[2], system.planet.shape[2]))
+        for ix in range(32):
+            for jx in range(ix, 32):
+                for kx in range(ix, jx):
+                    reachnessS[:, :, ix, jx] = reachnessS[:, :, ix, jx] * (1 - absorbS[:, :, kx])
+
+        reachnessL = np.ones((system.planet.shape[0], system.planet.shape[1], system.planet.shape[2], system.planet.shape[2]))
+        for ix in range(32):
+            for jx in range(ix, 32):
+                for kx in range(ix, jx):
+                    reachnessL[:, :, ix, jx] = reachnessL[:, :, ix, jx] * (1 - absorbL[:, :, kx])
+
+        income_s = relu(sza_coeff) * SunConst * top
 
         lt = lt[:, :, 0::32]
         income_l = StefanBoltzmann * lt * lt * lt * lt * dSr * (lt > 0)
@@ -182,14 +198,12 @@ class dHRel(Relation):
         fusion = + (lt >= 273.15) * (lt < 275) * dSr * bottom * 0.01 * WaterDensity * 333550 \
                  - (lt > 271) * (lt <= 273.155) * dSr * bottom * 0.01 * WaterDensity * 333550
 
-        income_r = np.copy(zero)
+        income = np.copy(zero)
         for ix in range(32):
-            if ix == 0:
-                income_r[:, :, ix] += outcome[:, :, ix + 1] / 3
-            elif ix == 31:
-                income_r[:, :, ix] += outcome[:, :, ix - 1] / 3
-            else:
-                income_r[:, :, ix] += (outcome[:, :, ix - 1] / 3 + outcome[:, :, ix + 1] / 2)
+            for jx in range(32):
+                income[:, :, ix] += outcome[:, :, jx] * reachnessL[:, :, ix, jx]
+            income[:, :, ix] += income_l[:, :, ix] * reachnessL[:, :, ix, 0]
+            income[:, :, ix] += income_s[:, :, -1] * reachnessS[:, :, ix, 31]
 
-        return (income_s + income_l * coeff + income_r - outcome) - 2266000 * dQ * dV + fusion
+        return (income - outcome) - 2266000 * dQ * dV + fusion
 
