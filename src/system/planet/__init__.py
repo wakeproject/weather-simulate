@@ -7,8 +7,8 @@ from numpy.random import random
 
 context = {}
 
-dlng = 2
-dlat = 2
+dlng = 3
+dlat = 3
 dalt = 500.0
 
 a = 6371000
@@ -58,9 +58,9 @@ dLr = 1 * dr
 dLph = r * dph
 dLth = r * np.cos(phi) * dth
 
-dSr = r * r * np.cos(phi) * dth * dph
-dSph = r * np.cos(phi) * dth * dr
-dSth = r * dph * dr
+dSr = dLph * dLth
+dSph = dLr * dLth
+dSth = dLr * dLph
 
 dV = dLr * dLph * dLth
 
@@ -147,7 +147,7 @@ def inject_random_nearby(i, j, thresh, speed, src, tgt):
             tgt[i, j] = src[i, j]
 
 
-def filter_extream_scalar(array):
+def filter_extream_scalar(name, array):
     mask = np.isnan(array)
     array[mask] = np.average(array[~mask])
 
@@ -169,7 +169,7 @@ def filter_extream_scalar(array):
     if len(nmask[1]) != 0:
         array[pmask] = np.average(array[nmask])
 
-    np.copyto(array, ndimage.gaussian_filter(array, 0.6))
+    np.copyto(array, ndimage.gaussian_filter(array, 0.2 * (np.max(context['T'].curval) - np.min(context['T'].curval)) / 150.0))
 
 
 def filter_extream_vector(name, array, u, v, w):
@@ -191,9 +191,7 @@ def filter_extream_vector(name, array, u, v, w):
                 if name == 'w':
                     inject_random_nearby(i, j, xthresh, speed, w, array)
 
-    alpha = 0.06 * np.log(np.mean(u * u + v * v + w * w) + np.e)
-    beta = np.exp(- np.mean(u * u + v * v + w * w) / 3000)
-    np.copyto(array, beta * ndimage.gaussian_filter(array, alpha))
+    np.copyto(array, ndimage.gaussian_filter(array, 1))
 
 
 def combine_scalar(array):
@@ -215,7 +213,7 @@ def combine_vector(name, array, u, v):
 
 def merge(name, array, compu=None, compv=None, compw=None):
     if name not in {'u', 'v', 'w'}:
-        filter_extream_scalar(array)
+        filter_extream_scalar(name, array)
     else:
         filter_extream_vector(name, array, compu, compv, compw)
 

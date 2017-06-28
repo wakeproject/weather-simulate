@@ -1,15 +1,19 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+import cv2
 
 import system
 
-from system.planet import Relation, Grid, zero, alt, lng, theta, phi, bottom, dSr
+from system.planet import Relation, Grid, zero, shape, alt, lng, theta, phi, bottom, dSr
 from system.planet import StefanBoltzmann, WaterHeatCapacity, RockHeatCapacity, SunConst, WaterDensity, RockDensity
 
 
+cntndata = np.array(np.load('data/continent.npy'), dtype=np.float64).T
+cntndata = (cv2.resize(cntndata, (shape[1], shape[0])))[:, :, np.newaxis]
+
 def continent():
-    return (np.absolute(2 + theta) < 1.2) * (phi > - np.pi / 9) * (phi < 2 * np.pi / 5) + (np.absolute(2 - theta) < 0.5) * (phi > - 2 * np.pi / 5) * (phi < np.pi / 3)
+    return (cntndata > 0.9)
 
 
 def relu(x):

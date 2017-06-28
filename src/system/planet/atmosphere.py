@@ -5,7 +5,7 @@ import numpy as np
 import system
 
 from system.planet import Relation, Grid, div
-from system.planet import zero, one, alt, bottom, top, theta, phi, r, dSr, dSth, dSph, dV, dalt, Th, Ph, R
+from system.planet import zero, one, alt, bottom, top, theta, phi, r, dSr, dSth, dSph, dV, dlng, dlat, dalt, Th, Ph, R, dpath
 from system.planet import a, g, Omega, gamma, gammad, cv, cp, R, miu, M, niu_matrix
 from system.planet import StefanBoltzmann, WaterHeatCapacity, RockHeatCapacity, WaterDensity, SunConst
 
@@ -17,15 +17,15 @@ def zinit(**kwargs):
 
 
 def uinit(**kwargs):
-    return 0.2 * np.random.random(system.planet.shape) - 0.1
+    return np.copy(zero)
 
 
 def vinit(**kwargs):
-    return 0.2 * np.random.random(system.planet.shape) - 0.1
+    return np.copy(zero)
 
 
 def winit(**kwargs):
-    return 0.2 * np.random.random(system.planet.shape) - 0.1
+    return np.copy(zero)
 
 
 def tinit(**kwargs):
@@ -50,7 +50,17 @@ class UGrd(Grid):
     def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None):
         a_th, _, _ = np.gradient(p * dSth) / rao / dV
 
-        return u * v / r * np.tan(phi) - u * w / r - 2 * Omega * (w * np.cos(phi) - v * np.sin(phi)) + a_th
+        f_th = np.gradient(rao * u * dSth * u)[0]
+        f_ph = np.gradient(rao * u * dSth * v)[1]
+        f_r = np.gradient(rao * u * dSth * w)[2]
+
+        f = 0.001 * (f_th + f_ph + f_r) / rao / dV
+
+        print '----------------------------------------'
+        print 'u', np.max(f), np.min(f), np.mean(f)
+        print 'u', np.max(a_th), np.min(a_th), np.mean(a_th)
+
+        return u * v / r * np.tan(phi) - u * w / r - 2 * Omega * (w * np.cos(phi) - v * np.sin(phi)) + a_th - f
 
 
 class VGrd(Grid):
@@ -61,7 +71,17 @@ class VGrd(Grid):
     def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None):
         _, a_ph, _ = np.gradient(p * dSph) / rao / dV
 
-        return - u * u / r * np.tan(phi) - v * w / r - 2 * Omega * u * np.sin(phi) + a_ph
+        f_th = np.gradient(rao * v * dSph * u)[0]
+        f_ph = np.gradient(rao * v * dSph * v)[1]
+        f_r = np.gradient(rao * v * dSph * w)[2]
+
+        f = 0.001 * (f_th + f_ph + f_r) / rao / dV * r
+
+        print '----------------------------------------'
+        print 'v', np.max(f), np.min(f), np.mean(f)
+        print 'v', np.max(a_ph), np.min(a_ph), np.mean(a_ph)
+
+        return - u * u / r * np.tan(phi) - v * w / r - 2 * Omega * u * np.sin(phi) + a_ph - f
 
 
 class WGrd(Grid):
@@ -72,7 +92,17 @@ class WGrd(Grid):
     def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None):
         _, _, a_r = np.gradient(p * dSr) / rao / dV
 
-        dw = (u * u + v * v) / r + 2 * Omega * u * np.cos(phi) - g + a_r
+        f_th = np.gradient(rao * w * dSr * u)[0]
+        f_ph = np.gradient(rao * w * dSr * v)[1]
+        f_r = np.gradient(rao * w * dSr * w)[2]
+
+        f = 0.001 * (f_th + f_ph + f_r) / rao / dV * dalt
+
+        print '----------------------------------------'
+        print 'w', np.max(f), np.min(f), np.mean(f)
+        print 'w', np.max(a_r), np.min(a_r), np.mean(a_r)
+
+        dw = (u * u + v * v) / r + 2 * Omega * u * np.cos(phi) - g + a_r - f
         return dw * (1 - bottom) * (1 - top) + (w > 0) * dw * bottom + (w < 0) * dw * top
 
 

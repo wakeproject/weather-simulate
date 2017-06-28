@@ -7,7 +7,7 @@ import time
 import system
 
 from system.planet.atmosphere import UGrd, VGrd, WGrd, TGrd, RGrd, QGrd, PRel, dHRel, dQRel
-from system.planet.terrasphere import TLGrd, SIGrd
+from system.planet.terrasphere import TLGrd, SIGrd, continent
 
 
 u = UGrd(system.planet.shape)
@@ -24,10 +24,12 @@ dQ = dQRel(system.planet.shape)
 tl = TLGrd(system.planet.shape)
 si = SIGrd(system.planet.shape)
 
+cntn = continent()
+
 
 def evolve():
     s = np.sqrt(u.curval * u.curval + v.curval * v.curval + w.curval * w.curval + 0.00001)
-    dt = 100000 / np.max(s)
+    dt = 10 / np.max(s)
     if dt > 1:
         dt = 1
     system.t = system.t + dt
@@ -80,7 +82,7 @@ if __name__ == '__main__':
     map_width = system.planet.shape[0]
     map_height = system.planet.shape[1]
 
-    tile_size = 12
+    tile_size = 9
     arrrow_size = tile_size
 
     pygame.init()
@@ -104,9 +106,10 @@ if __name__ == '__main__':
 
         evolve()
 
-        umap = u.curval[:, :, 0]
-        vmap = v.curval[:, :, 0]
-        wmap = w.curval[:, :, 0]
+        tmap = T.curval[:, :, 0]
+        umap = 0.05 * u.curval[:, :, 0] + 0.95 * u.curval[:, :, 1]
+        vmap = 0.05 * v.curval[:, :, 0] + 0.95 * v.curval[:, :, 1]
+        wmap = 0.05 * w.curval[:, :, 0] + 0.95 * w.curval[:, :, 1]
         smap = np.sqrt(umap * umap + vmap * vmap + wmap * wmap + 0.001)
         mxs = np.max(smap)
 
@@ -117,6 +120,7 @@ if __name__ == '__main__':
         wcmap = normalize(wmap)
         for ixlng in range(system.planet.shape[0]):
             for ixlat in range(system.planet.shape[1]):
+                tval = tmap[ixlng, ixlat]
                 uval = umap[ixlng, ixlat]
                 vval = vmap[ixlng, ixlat]
                 sval = smap[ixlng, ixlat]
@@ -127,15 +131,23 @@ if __name__ == '__main__':
                 vcolor = vcmap[ixlng, ixlat]
                 wcolor = wcmap[ixlng, ixlat]
                 tile = pygame.Surface((tile_size, tile_size))
-                tile.fill((int(tcolor * 2 / 3), 255 - int(tcolor * 2 / 3), 255 - int(tcolor * 2 / 3)))
+                r = (int(tcolor * 2 / 3) + int(72 * cntn[ixlng, ixlat, 0])) * (tval > 273.15) + (128 + int(tcolor / 2) + int(72 * cntn[ixlng, ixlat, 0])) * (tval <= 273.15)
+                g = (255 - int(tcolor * 2 / 3) - int(72 * cntn[ixlng, ixlat, 0])) + (255 - int(tcolor / 4) - int(72 * cntn[ixlng, ixlat, 0])) * (tval <= 273.15)
+                b = (255 - int(tcolor * 2 / 3) - int(72 * cntn[ixlng, ixlat, 0])) + (255 - int(tcolor / 4) - int(72 * cntn[ixlng, ixlat, 0])) * (tval <= 273.15)
+                r = (r > 255) * 255 + (r > 0) * (r < 256) * r
+                g = (g > 255) * 255 + (g > 0) * (g < 256) * g
+                b = (b > 255) * 255 + (b > 0) * (b < 256) * b
+                tile.fill((r, g, b))
                 tile.set_alpha(64)
 
-                if ixlng % 3 == 0 and ixlat % 3 == 0:
+                if ixlng % 2 == 0 and ixlat % 2 == 0:
                     length = int(arrrow_size * sval / mxs)
                     if np.absolute(uval) >= np.absolute(vval):
-                        pygame.draw.aaline(tile, (int(wcolor), int(ucolor), int(vcolor)), [arrrow_size / 2 - length * vval / uval, 0], [arrrow_size / 2 + length * vval / uval, arrrow_size], True)
+                        pygame.draw.aaline(tile, (int(wcolor), int(ucolor), int(vcolor)), [arrrow_size / 2.0 - length, arrrow_size / 2.0 - length * vval / uval],
+                                                                                          [arrrow_size / 2.0 + length, arrrow_size / 2.0 + length * vval / uval], True)
                     else:
-                        pygame.draw.aaline(tile, (int(wcolor), int(ucolor), int(vcolor)), [0, arrrow_size / 2 - length * uval / vval], [arrrow_size, arrrow_size / 2 + length * uval / vval], True)
+                        pygame.draw.aaline(tile, (int(wcolor), int(ucolor), int(vcolor)), [arrrow_size / 2.0 - length * vval / uval, arrrow_size / 2.0 - length],
+                                                                                          [arrrow_size / 2.0 + length * vval / uval, arrrow_size / 2.0 + length], True)
 
                 screen.blit(tile, (ixlng * tile_size, ixlat * tile_size))
 
