@@ -9,7 +9,6 @@ from solarsys import alt, lng, R
 from solarsys import dlng, dlat, dalt, a, one, zero, bottom, top, r, theta, phi, Th, Ph, dSr, dSph, dSth, dV, dpath, div
 from solarsys.earth import g, Omega, gamma, gammad, cv, cp, R, miu, M, niu_matrix
 from solarsys.earth import StefanBoltzmann, WaterHeatCapacity, RockHeatCapacity, WaterDensity, SunConst
-from solarsys.earth import shtAbsorbLand, shtAbsorbAir
 
 from solarsys.earth.terrasphere import continent
 
@@ -54,10 +53,10 @@ class UGrd(Grid):
         super(UGrd, self).__init__('u', lng_size, lat_size, alt_size, initfn=uinit)
 
     def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None, tc=None):
-        a_th, _, _ = np.gradient(p * dSth) / rao / dV
+        a_th, _, _ = np.gradient(p * dSth) / (r * np.cos(phi)) / rao / dV
 
-        f_th = np.gradient(rao * u * dSth * u)[0]
-        f_ph = np.gradient(rao * u * dSth * v)[1]
+        f_th = np.gradient(rao * u * dSth * u)[0] / (r * np.cos(phi))
+        f_ph = np.gradient(rao * u * dSth * v)[1] / r
         f_r = np.gradient(rao * u * dSth * w)[2]
 
         f = 0.0004 * (f_th + f_ph + f_r) / rao / dV
@@ -71,10 +70,10 @@ class VGrd(Grid):
         super(VGrd, self).__init__('v', lng_size, lat_size, alt_size, initfn=vinit)
 
     def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None, tc=None):
-        _, a_ph, _ = np.gradient(p * dSph) / rao / dV
+        _, a_ph, _ = np.gradient(p * dSph) / r / rao / dV
 
-        f_th = np.gradient(rao * v * dSph * u)[0]
-        f_ph = np.gradient(rao * v * dSph * v)[1]
+        f_th = np.gradient(rao * v * dSph * u)[0] / (r * np.cos(phi))
+        f_ph = np.gradient(rao * v * dSph * v)[1] / r
         f_r = np.gradient(rao * v * dSph * w)[2]
 
         f = 0.0004 * (f_th + f_ph + f_r) / rao / dV * r
@@ -90,8 +89,8 @@ class WGrd(Grid):
     def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None, tc=None):
         _, _, a_r = np.gradient(p * dSr) / rao / dV
 
-        f_th = np.gradient(rao * w * dSr * u)[0]
-        f_ph = np.gradient(rao * w * dSr * v)[1]
+        f_th = np.gradient(rao * w * dSr * u)[0] / (r * np.cos(phi))
+        f_ph = np.gradient(rao * w * dSr * v)[1] / r
         f_r = np.gradient(rao * w * dSr * w)[2]
 
         f = 0.0004 * (f_th + f_ph + f_r) / rao / dV * dalt

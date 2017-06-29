@@ -12,6 +12,7 @@ context = {
 dlng = 3
 dlat = 3
 dalt = 500.0
+
 a = 6371000
 
 lat, lng, alt = np.meshgrid(np.arange(-89.5, 89.5, dlat), np.arange(-180, 181, dlng), np.arange(0, 16000, dalt))

@@ -7,7 +7,7 @@ import time
 import solarsys
 
 from solarsys.earth.atmosphere import UGrd, VGrd, WGrd, TGrd, RGrd, QGrd, PRel, dHRel, dQRel
-from solarsys.earth.terrasphere import TLGrd, SIGrd, continent, TotalCloudage
+from solarsys.earth.terrasphere import TLGrd, SIGrd, continent, TotalCloudage, SunConst
 
 
 u = UGrd(solarsys.shape)
@@ -36,12 +36,18 @@ def evolve():
     solarsys.t = solarsys.t + dt
     print '----------------------------------------------------'
     print solarsys.t, dt
-    print 'wind: ', np.max(s), np.min(s), np.mean(s)
-    print 'temp', np.max(T.curval - 273.15), np.min(T.curval - 273.15), np.mean(T.curval - 273.15)
-    print 'pres', np.max(p.curval / 101325), np.min(p.curval / 101325), np.mean(p.curval / 101325)
-    print 'rao', np.max(rao.curval), np.min(rao.curval), np.mean(rao.curval)
-    print 'humd', np.max(q.curval), np.min(q.curval), np.mean(q.curval)
-    print 'cldg', np.max(tc.curval[:, :, 0]), np.min(tc.curval[:, :, 0]), np.mean(tc.curval[:, :, 0])
+    tmp = 0.5 * s[:, :, 0] + 0.5 * s[:, :, 1]
+    print 'wind: ', np.max(tmp), np.min(tmp), np.mean(tmp)
+    tmp = T.curval[:, :, 0] - 273.15
+    print 'temp', np.max(tmp), np.min(tmp), np.mean(tmp)
+    tmp = p.curval[:, :, 0] / 101325
+    print 'pres', np.max(tmp), np.min(tmp), np.mean(tmp)
+    tmp = rao.curval[:, :, 0]
+    print 'rao', np.max(tmp), np.min(tmp), np.mean(tmp)
+    tmp = q.curval[:, :, 0]
+    print 'humd', np.max(tmp), np.min(tmp), np.mean(tmp)
+    tmp = tc.curval[:, :, 0]
+    print 'cldg', np.max(tmp), np.min(tmp), np.mean(tmp)
 
     u.evolve(dt)
     v.evolve(dt)
@@ -76,22 +82,25 @@ def flip():
     tc.swap()
 
 
-def normalize(array):
-    maxv = np.max(array)
-    minv = np.min(array)
-    return (array - minv) / (maxv - minv + 0.001) * 255
+def normalize(array, minv, maxv):
+    val = (array - minv) / (maxv - minv + 0.001) * 255
+    return val * (val > 0) * (val < 256)
 
 
 if __name__ == '__main__':
     map_width = solarsys.shape[0]
     map_height = solarsys.shape[1]
 
-    tile_size = 9
-    arrrow_size = tile_size
+    tile_size = 12
+    gap = int(6 / solarsys.dlng)
+    wind_size = tile_size * gap
 
     pygame.init()
     screen = pygame.display.set_mode((map_width * tile_size, map_height * tile_size))
     background = pygame.Surface(screen.get_size())
+    tilep = pygame.Surface((tile_size, tile_size))
+    tilew = pygame.Surface((wind_size, wind_size))
+    tilew.set_alpha(128)
 
     clock = pygame.time.Clock()
 
@@ -102,7 +111,7 @@ if __name__ == '__main__':
     lasttile = 0
     while running == True:
         clock.tick(5)
-        #time.sleep(1)
+        time.sleep(1)
         pygame.display.set_caption('FPS: ' + str(clock.get_fps()))
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -110,6 +119,7 @@ if __name__ == '__main__':
 
         evolve()
 
+        mapc = cntn[:, :, 0]
         bmap = si.curval[:, :, 0]
         tmap = T.curval[:, :, 0]
         cmap = tc.curval[:, :, 0]
@@ -121,17 +131,24 @@ if __name__ == '__main__':
         mns = np.min(smap)
         mms = np.mean(smap)
 
-        bcmap = normalize(bmap)
-        tcmap = normalize(tmap)
-        ccmap = normalize(cmap)
-        scmap = normalize(smap)
-        ucmap = normalize(umap)
-        vcmap = normalize(vmap)
-        wcmap = normalize(wmap)
+        bcmap = normalize(bmap, 0, np.max(bmap))
+        tcmap = normalize(tmap, 200, 374)
+        ccmap = normalize(cmap, 0, 1)
+        scmap = normalize(smap, 0, np.max(smap))
+        ucmap = normalize(umap, 0, np.max(smap))
+        vcmap = normalize(vmap, 0, np.max(smap))
+        wcmap = normalize(wmap, 0, np.max(smap))
+
+        r = (tcmap * 2 / 3 + 72 * mapc) * (tmap > 273.15) + (128 + tcmap / 2 + 72 * mapc) * (tmap <= 273.15)
+        g = (128 + ccmap - 72 * mapc) + (256 + ccmap - 72 * mapc) * (tmap <= 273.15)
+        b = (128 + ccmap - 72 * mapc) + (256 + ccmap - 72 * mapc) * (tmap <= 273.15)
+        bcmap = bcmap + 200
+        r = r * bcmap / (255 + 200)
+        g = g * bcmap / (255 + 200)
+        b = b * bcmap / (255 + 200)
+
         for ixlng in range(solarsys.shape[0]):
             for ixlat in range(solarsys.shape[1]):
-                tval = tmap[ixlng, ixlat]
-                cval = cmap[ixlng, ixlat]
                 uval = umap[ixlng, ixlat]
                 vval = vmap[ixlng, ixlat]
                 sval = smap[ixlng, ixlat]
@@ -143,33 +160,25 @@ if __name__ == '__main__':
                 ucolor = ucmap[ixlng, ixlat]
                 vcolor = vcmap[ixlng, ixlat]
                 wcolor = wcmap[ixlng, ixlat]
-                tile = pygame.Surface((tile_size, tile_size))
-                r = (int(tcolor * 2 / 3) + int(72 * cntn[ixlng, ixlat, 0])) * (tval > 273.15) + (128 + int(tcolor / 2) + int(72 * cntn[ixlng, ixlat, 0])) * (tval <= 273.15)
-                g = (128 + ccolor - int(72 * cntn[ixlng, ixlat, 0])) + (256 + ccolor - int(72 * cntn[ixlng, ixlat, 0])) * (tval <= 273.15)
-                b = (128 + ccolor - int(72 * cntn[ixlng, ixlat, 0])) + (256 + ccolor - int(72 * cntn[ixlng, ixlat, 0])) * (tval <= 273.15)
-                m = np.sqrt(r * r + g * g + b * b + 1)
-                r = int(r * (255 - ccolor + 0) / m)
-                g = int(g * (255 - ccolor + 0) / m)
-                b = int(b * (255 - ccolor + 0) / m)
-                m = np.sqrt(r * r + g * g + b * b + 1)
-                r = int(r * (bcolor + 160) / m)
-                g = int(g * (bcolor + 160) / m)
-                b = int(b * (bcolor + 160) / m)
-                r = (r > 255) * 255 + (r >= 0) * (r < 256) * r
-                g = (g > 255) * 255 + (g >= 0) * (g < 256) * g
-                b = (b > 255) * 255 + (b >= 0) * (b < 256) * b
-                tile.fill((r, g, b))
-                tile.set_alpha(64)
 
-                if ixlng % 2 == 0 and ixlat % 2 == 0:
-                    length = int(arrrow_size * sval / mxs)
+                rval = r[ixlng, ixlat]
+                gval = g[ixlng, ixlat]
+                bval = b[ixlng, ixlat]
+
+                tilep.fill((rval, gval, bval))
+                tilep.set_alpha(255 - ccolor)
+                screen.blit(tilep, (ixlng * tile_size, ixlat * tile_size))
+
+                if ixlng % gap == 0 and ixlat % gap == 0:
+                    length = wind_size / 2 * scolor / 256.0
                     if np.absolute(uval) >= np.absolute(vval):
-                        pygame.draw.aaline(tile, (int(wcolor), int(ucolor), int(vcolor)), [arrrow_size / 2.0 - length, arrrow_size / 2.0 - length * vval / uval],
-                                                                                          [arrrow_size / 2.0 + length, arrrow_size / 2.0 + length * vval / uval], True)
+                        pygame.draw.aaline(tilew, (wcolor, ucolor, vcolor), [wind_size / 2.0 - length, wind_size / 2.0 - length * vval / uval],
+                                                                                           [wind_size / 2.0 + length, wind_size / 2.0 + length * vval / uval], True)
                     else:
-                        pygame.draw.aaline(tile, (int(wcolor), int(ucolor), int(vcolor)), [arrrow_size / 2.0 - length * vval / uval, arrrow_size / 2.0 - length],
-                                                                                          [arrrow_size / 2.0 + length * vval / uval, arrrow_size / 2.0 + length], True)
-                screen.blit(tile, (ixlng * tile_size, ixlat * tile_size))
+                        pygame.draw.aaline(tilew, (wcolor, ucolor, vcolor), [wind_size / 2.0 - length * vval / uval, wind_size / 2.0 - length],
+                                                                                           [wind_size / 2.0 + length * vval / uval, wind_size / 2.0 + length], True)
+
+                    screen.blit(tilew, (ixlng * tile_size, ixlat * tile_size))
 
         flip()
         pygame.display.flip()

@@ -10,7 +10,6 @@ import solarsys
 from solarsys.earth import Relation, Grid
 from solarsys import shape, zero, bottom, theta, phi, dSr, alt, lng, lat
 from solarsys.earth import StefanBoltzmann, WaterHeatCapacity, RockHeatCapacity, SunConst, WaterDensity, RockDensity
-from solarsys.earth import shtAbsorbLand, shtAbsorbAir
 
 
 if not path.exists('data/continent.npy'):
