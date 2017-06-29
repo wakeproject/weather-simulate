@@ -2,15 +2,16 @@
 
 import numpy as np
 
-import system
+import solarsys
 
-from system.planet import Relation, Grid, div
-from system.planet import zero, one, alt, bottom, top, theta, phi, r, dSr, dSth, dSph, dV, lng, dlng, dlat, dalt, Th, Ph, R, dpath
-from system.planet import a, g, Omega, gamma, gammad, cv, cp, R, miu, M, niu_matrix
-from system.planet import StefanBoltzmann, WaterHeatCapacity, RockHeatCapacity, WaterDensity, SunConst
-from system.planet import shtAbsorbLand, shtAbsorbAir
+from solarsys.earth import Relation, Grid
+from solarsys import alt, lng, R
+from solarsys import dlng, dlat, dalt, a, one, zero, bottom, top, r, theta, phi, Th, Ph, dSr, dSph, dSth, dV, dpath, div
+from solarsys.earth import g, Omega, gamma, gammad, cv, cp, R, miu, M, niu_matrix
+from solarsys.earth import StefanBoltzmann, WaterHeatCapacity, RockHeatCapacity, WaterDensity, SunConst
+from solarsys.earth import shtAbsorbLand, shtAbsorbAir
 
-from system.planet.terrasphere import continent
+from solarsys.earth.terrasphere import continent
 
 
 def relu(x):
@@ -34,11 +35,11 @@ def winit(**kwargs):
 
 
 def tinit(**kwargs):
-    return 288.15 - gamma * alt + 2 * np.random.random(system.planet.shape) - 1
+    return 288.15 - gamma * alt + 2 * np.random.random(solarsys.shape) - 1
 
 
 def pinit(**kwargs):
-    return 101325 * np.exp(- g * M * alt / 288.15 / 8.31447) + 100 * np.random.random(system.planet.shape) - 50
+    return 101325 * np.exp(- g * M * alt / 288.15 / 8.31447) + 100 * np.random.random(solarsys.shape) - 50
 
 
 def rinit(**kwargs):
@@ -118,7 +119,7 @@ class TGrd(Grid):
         super(TGrd, self).__init__('T', lng_size, lat_size, alt_size, initfn=tinit)
 
     def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None, tc=None):
-        dp = system.planet.context['p'].drvval
+        dp = solarsys.earth.context['p'].drvval
         return dH / dV / rao / cp + dp / rao / cp
 
 
@@ -150,7 +151,7 @@ class dQRel(Relation):
         super(dQRel, self).__init__('dQ', lng_size, lat_size, alt_size)
 
     def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None, tc=None):
-        dT = system.planet.context['T'].drvval
+        dT = solarsys.earth.context['T'].drvval
         cntnt = continent()
 
         return + 0.00001 * T * T * T / 273.15 / (373.15 - T) / (373.15 - T) * (dT > 0) * (1 - cntnt) + 0.000001 * (dT > 0) * cntnt - 0.000001 * (dT < 0) * (q > 0.0001)
@@ -162,23 +163,23 @@ class dHRel(Relation):
         super(dHRel, self).__init__('dH', lng_size, lat_size, alt_size)
 
     def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None, tc=None):
-        doy = np.mod(system.t / 3600 / 24, 365.24)
-        hod = np.mod(system.t / 3600 - lng / 15.0, 24)
+        doy = np.mod(solarsys.t / 3600 / 24, 365.24)
+        hod = np.mod(solarsys.t / 3600 - lng / 15.0, 24)
         ha = 2 * np.pi * hod / 24
         decline = - 23.44 / 180 * np.pi * np.cos(2 * np.pi * (doy + 10) / 365)
         sza_coeff = np.sin(phi) * np.sin(decline) + np.cos(phi) * np.cos(decline) * np.cos(ha)
 
-        dT = system.planet.context['T'].drvval
+        dT = solarsys.earth.context['T'].drvval
         absorbS = np.sqrt(q) * (dT < 0) * (q > 0.0001)
         absorbL = np.sqrt(np.sqrt(q)) * (dT < 0) * (q > 0.0001)
 
-        reachnessS = np.ones((system.planet.shape[0], system.planet.shape[1], system.planet.shape[2], system.planet.shape[2]))
+        reachnessS = np.ones((solarsys.shape[0], solarsys.shape[1], solarsys.shape[2], solarsys.shape[2]))
         for ix in range(32):
             for jx in range(ix, 32):
                 for kx in range(ix, jx):
                     reachnessS[:, :, ix, jx] = reachnessS[:, :, ix, jx] * (1 - absorbS[:, :, kx])
 
-        reachnessL = np.ones((system.planet.shape[0], system.planet.shape[1], system.planet.shape[2], system.planet.shape[2]))
+        reachnessL = np.ones((solarsys.shape[0], solarsys.shape[1], solarsys.shape[2], solarsys.shape[2]))
         for ix in range(32):
             for jx in range(ix, 32):
                 for kx in range(ix, jx):

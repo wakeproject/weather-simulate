@@ -5,11 +5,12 @@ import cv2
 
 from os import path
 
-import system
+import solarsys
 
-from system.planet import Relation, Grid, zero, shape, alt, lng, theta, phi, bottom, dSr
-from system.planet import StefanBoltzmann, WaterHeatCapacity, RockHeatCapacity, SunConst, WaterDensity, RockDensity
-from system.planet import shtAbsorbLand, shtAbsorbAir
+from solarsys.earth import Relation, Grid
+from solarsys import shape, zero, bottom, theta, phi, dSr, alt, lng, lat
+from solarsys.earth import StefanBoltzmann, WaterHeatCapacity, RockHeatCapacity, SunConst, WaterDensity, RockDensity
+from solarsys.earth import shtAbsorbLand, shtAbsorbAir
 
 
 if not path.exists('data/continent.npy'):
@@ -57,8 +58,8 @@ class SIGrd(Grid):
     def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None, tc=None):
         albedo = 0.7 * (lt > 273.15) + 0.1 * (lt < 273.15) # considering ice and soil
 
-        doy = np.mod(system.t / 3600 / 24, 365.24)
-        hod = np.mod(system.t / 3600 - lng / 15.0, 24)
+        doy = np.mod(solarsys.t / 3600 / 24, 365.24)
+        hod = np.mod(solarsys.t / 3600 - lng / 15.0, 24)
         ha = 2 * np.pi * hod / 24
         decline = - 23.44 / 180 * np.pi * np.cos(2 * np.pi * (doy + 10) / 365)
         sza_coeff = np.sin(phi) * np.sin(decline) + np.cos(phi) * np.cos(decline) * np.cos(ha)
@@ -72,7 +73,7 @@ class TotalCloudage(Relation):
         super(TotalCloudage, self).__init__('tc', lng_size, lat_size, alt_size, initfn=tinit)
 
     def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None, tc=None):
-        dT = system.planet.context['T'].drvval
+        dT = solarsys.earth.context['T'].drvval
         cloudage = np.sqrt(q) * (dT < 0) * (q > 0.0001)
 
         ratio = 1 - cloudage

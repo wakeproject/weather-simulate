@@ -4,26 +4,26 @@ import numpy as np
 import pygame
 import time
 
-import system
+import solarsys
 
-from system.planet.atmosphere import UGrd, VGrd, WGrd, TGrd, RGrd, QGrd, PRel, dHRel, dQRel
-from system.planet.terrasphere import TLGrd, SIGrd, continent, TotalCloudage
+from solarsys.earth.atmosphere import UGrd, VGrd, WGrd, TGrd, RGrd, QGrd, PRel, dHRel, dQRel
+from solarsys.earth.terrasphere import TLGrd, SIGrd, continent, TotalCloudage
 
 
-u = UGrd(system.planet.shape)
-v = VGrd(system.planet.shape)
-w = WGrd(system.planet.shape)
-T = TGrd(system.planet.shape)
-rao = RGrd(system.planet.shape)
-q = QGrd(system.planet.shape)
+u = UGrd(solarsys.shape)
+v = VGrd(solarsys.shape)
+w = WGrd(solarsys.shape)
+T = TGrd(solarsys.shape)
+rao = RGrd(solarsys.shape)
+q = QGrd(solarsys.shape)
 
-p = PRel(system.planet.shape)
-dH = dHRel(system.planet.shape)
-dQ = dQRel(system.planet.shape)
+p = PRel(solarsys.shape)
+dH = dHRel(solarsys.shape)
+dQ = dQRel(solarsys.shape)
 
-tl = TLGrd(system.planet.shape)
-si = SIGrd(system.planet.shape)
-tc = TotalCloudage(system.planet.shape)
+tl = TLGrd(solarsys.shape)
+si = SIGrd(solarsys.shape)
+tc = TotalCloudage(solarsys.shape)
 
 cntn = continent()
 
@@ -33,9 +33,9 @@ def evolve():
     dt = 100 / np.max(s)
     if dt > 1:
         dt = 1
-    system.t = system.t + dt
+    solarsys.t = solarsys.t + dt
     print '----------------------------------------------------'
-    print system.t, dt
+    print solarsys.t, dt
     print 'wind: ', np.max(s), np.min(s), np.mean(s)
     print 'temp', np.max(T.curval - 273.15), np.min(T.curval - 273.15), np.mean(T.curval - 273.15)
     print 'pres', np.max(p.curval / 101325), np.min(p.curval / 101325), np.mean(p.curval / 101325)
@@ -83,8 +83,8 @@ def normalize(array):
 
 
 if __name__ == '__main__':
-    map_width = system.planet.shape[0]
-    map_height = system.planet.shape[1]
+    map_width = solarsys.shape[0]
+    map_height = solarsys.shape[1]
 
     tile_size = 9
     arrrow_size = tile_size
@@ -128,8 +128,8 @@ if __name__ == '__main__':
         ucmap = normalize(umap)
         vcmap = normalize(vmap)
         wcmap = normalize(wmap)
-        for ixlng in range(system.planet.shape[0]):
-            for ixlat in range(system.planet.shape[1]):
+        for ixlng in range(solarsys.shape[0]):
+            for ixlat in range(solarsys.shape[1]):
                 tval = tmap[ixlng, ixlat]
                 cval = cmap[ixlng, ixlat]
                 uval = umap[ixlng, ixlat]
