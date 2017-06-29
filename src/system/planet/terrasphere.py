@@ -41,7 +41,7 @@ class TLGrd(Grid):
         lng_size, lat_size, alt_size = shape
         super(TLGrd, self).__init__('lt', lng_size, lat_size, alt_size, initfn=tinit)
 
-    def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None):
+    def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None, tc=None):
         contnt = continent()
         capacity = WaterHeatCapacity * (1 - contnt) + RockHeatCapacity * contnt
         density = WaterDensity * (1 - contnt) + RockDensity * contnt
@@ -54,17 +54,8 @@ class SIGrd(Grid):
         lng_size, lat_size, alt_size = shape
         super(SIGrd, self).__init__('si', lng_size, lat_size, alt_size, initfn=zinit)
 
-    def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None):
+    def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None, tc=None):
         albedo = 0.7 * (lt > 273.15) + 0.1 * (lt < 273.15) # considering ice and soil
-
-        dT = system.planet.context['T'].drvval
-        cloudage = np.sqrt(q) * (dT < 0) * (q > 0.0001)
-
-        ratio_in = 1 - cloudage
-        ratio_last = np.copy(bottom)
-        for ix in range(32):
-            ratio_last[:, :, 0] = ratio_last[:, :, 0] * ratio_in[:, :, ix]
-        print 'cloudy', 1 - np.min(ratio_last[:, :, 0]), 1 - np.max(ratio_last[:, :, 0]), 1 - np.mean(ratio_last[:, :, 0])
 
         doy = np.mod(system.t / 3600 / 24, 365.24)
         hod = np.mod(system.t / 3600 - lng / 15.0, 24)
@@ -72,5 +63,22 @@ class SIGrd(Grid):
         decline = - 23.44 / 180 * np.pi * np.cos(2 * np.pi * (doy + 10) / 365)
         sza_coeff = np.sin(phi) * np.sin(decline) + np.cos(phi) * np.cos(decline) * np.cos(ha)
 
-        return albedo * relu(sza_coeff) * SunConst * ratio_last * bottom
+        return albedo * relu(sza_coeff) * SunConst * tc * bottom
+
+
+class TotalCloudage(Relation):
+    def __init__(self, shape):
+        lng_size, lat_size, alt_size = shape
+        super(TotalCloudage, self).__init__('tc', lng_size, lat_size, alt_size, initfn=tinit)
+
+    def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None, tc=None):
+        dT = system.planet.context['T'].drvval
+        cloudage = np.sqrt(q) * (dT < 0) * (q > 0.0001)
+
+        ratio = 1 - cloudage
+        ratio_total = np.copy(bottom)
+        for ix in range(32):
+            ratio_total[:, :, 0] = ratio_total[:, :, 0] * ratio[:, :, ix]
+
+        return 1 - ratio_total
 

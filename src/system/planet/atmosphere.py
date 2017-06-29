@@ -52,14 +52,14 @@ class UGrd(Grid):
         lng_size, lat_size, alt_size = shape
         super(UGrd, self).__init__('u', lng_size, lat_size, alt_size, initfn=uinit)
 
-    def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None):
+    def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None, tc=None):
         a_th, _, _ = np.gradient(p * dSth) / rao / dV
 
         f_th = np.gradient(rao * u * dSth * u)[0]
         f_ph = np.gradient(rao * u * dSth * v)[1]
         f_r = np.gradient(rao * u * dSth * w)[2]
 
-        f = 0.0001 * (f_th + f_ph + f_r) / rao / dV
+        f = 0.0004 * (f_th + f_ph + f_r) / rao / dV
 
         return u * v / r * np.tan(phi) - u * w / r - 2 * Omega * (w * np.cos(phi) - v * np.sin(phi)) + a_th - f
 
@@ -69,14 +69,14 @@ class VGrd(Grid):
         lng_size, lat_size, alt_size = shape
         super(VGrd, self).__init__('v', lng_size, lat_size, alt_size, initfn=vinit)
 
-    def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None):
+    def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None, tc=None):
         _, a_ph, _ = np.gradient(p * dSph) / rao / dV
 
         f_th = np.gradient(rao * v * dSph * u)[0]
         f_ph = np.gradient(rao * v * dSph * v)[1]
         f_r = np.gradient(rao * v * dSph * w)[2]
 
-        f = 0.0001 * (f_th + f_ph + f_r) / rao / dV * r
+        f = 0.0004 * (f_th + f_ph + f_r) / rao / dV * r
 
         return - u * u / r * np.tan(phi) - v * w / r - 2 * Omega * u * np.sin(phi) + a_ph - f
 
@@ -86,14 +86,14 @@ class WGrd(Grid):
         lng_size, lat_size, alt_size = shape
         super(WGrd, self).__init__('w', lng_size, lat_size, alt_size, initfn=winit)
 
-    def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None):
+    def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None, tc=None):
         _, _, a_r = np.gradient(p * dSr) / rao / dV
 
         f_th = np.gradient(rao * w * dSr * u)[0]
         f_ph = np.gradient(rao * w * dSr * v)[1]
         f_r = np.gradient(rao * w * dSr * w)[2]
 
-        f = 0.0001 * (f_th + f_ph + f_r) / rao / dV * dalt
+        f = 0.0004 * (f_th + f_ph + f_r) / rao / dV * dalt
 
         dw = (u * u + v * v) / r + 2 * Omega * u * np.cos(phi) - g + a_r - f
         return dw * (1 - bottom) * (1 - top) + (w > 0) * dw * bottom + (w < 0) * dw * top
@@ -104,7 +104,7 @@ class RGrd(Grid):
         lng_size, lat_size, alt_size = shape
         super(RGrd, self).__init__('rao', lng_size, lat_size, alt_size, initfn=rinit)
 
-    def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None):
+    def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None, tc=None):
         u_th, _, _ = np.gradient(u)
         _, v_ph, _ = np.gradient(v)
         _, _, w_r = np.gradient(w)
@@ -117,7 +117,7 @@ class TGrd(Grid):
         lng_size, lat_size, alt_size = shape
         super(TGrd, self).__init__('T', lng_size, lat_size, alt_size, initfn=tinit)
 
-    def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None):
+    def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None, tc=None):
         dp = system.planet.context['p'].drvval
         return dH / dV / rao / cp + dp / rao / cp
 
@@ -127,7 +127,7 @@ class QGrd(Grid):
         lng_size, lat_size, alt_size = shape
         super(QGrd, self).__init__('q', lng_size, lat_size, alt_size, initfn=zinit)
 
-    def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None):
+    def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None, tc=None):
         u_th, _, _ = np.gradient(u)
         _, v_ph, _ = np.gradient(v)
         _, _, w_r = np.gradient(w)
@@ -140,7 +140,7 @@ class PRel(Relation):
         lng_size, lat_size, alt_size = shape
         super(PRel, self).__init__('p', lng_size, lat_size, alt_size, initfn=pinit)
 
-    def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None):
+    def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None, tc=None):
         return rao * R * T
 
 
@@ -149,16 +149,11 @@ class dQRel(Relation):
         lng_size, lat_size, alt_size = shape
         super(dQRel, self).__init__('dQ', lng_size, lat_size, alt_size)
 
-    def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None):
+    def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None, tc=None):
         dT = system.planet.context['T'].drvval
         cntnt = continent()
 
-        return + 0.0001 * T * T * T / 273.15 / (373.15 - T) / (373.15 - T) * (dT > 0) * (1 - cntnt) + 0.00001 * (dT > 0) * cntnt - 0.00001 * (dT < 0) * (q > 0.0001)
-
-
-coeff = np.copy(one)
-for ix in range(32):
-    coeff[:, :, ix] *= (0.1 * 0.9 ** (ix + 1))
+        return + 0.00001 * T * T * T / 273.15 / (373.15 - T) / (373.15 - T) * (dT > 0) * (1 - cntnt) + 0.000001 * (dT > 0) * cntnt - 0.000001 * (dT < 0) * (q > 0.0001)
 
 
 class dHRel(Relation):
@@ -166,7 +161,7 @@ class dHRel(Relation):
         lng_size, lat_size, alt_size = shape
         super(dHRel, self).__init__('dH', lng_size, lat_size, alt_size)
 
-    def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None):
+    def step(self, u=None, v=None, w=None, rao=None, p=None, T=None, q=None, dQ=None, dH=None, lt=None, si=None, tc=None):
         doy = np.mod(system.t / 3600 / 24, 365.24)
         hod = np.mod(system.t / 3600 - lng / 15.0, 24)
         ha = 2 * np.pi * hod / 24

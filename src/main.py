@@ -7,7 +7,7 @@ import time
 import system
 
 from system.planet.atmosphere import UGrd, VGrd, WGrd, TGrd, RGrd, QGrd, PRel, dHRel, dQRel
-from system.planet.terrasphere import TLGrd, SIGrd, continent
+from system.planet.terrasphere import TLGrd, SIGrd, continent, TotalCloudage
 
 
 u = UGrd(system.planet.shape)
@@ -23,6 +23,7 @@ dQ = dQRel(system.planet.shape)
 
 tl = TLGrd(system.planet.shape)
 si = SIGrd(system.planet.shape)
+tc = TotalCloudage(system.planet.shape)
 
 cntn = continent()
 
@@ -40,6 +41,7 @@ def evolve():
     print 'pres', np.max(p.curval / 101325), np.min(p.curval / 101325), np.mean(p.curval / 101325)
     print 'rao', np.max(rao.curval), np.min(rao.curval), np.mean(rao.curval)
     print 'humd', np.max(q.curval), np.min(q.curval), np.mean(q.curval)
+    print 'cldg', np.max(tc.curval[:, :, 0]), np.min(tc.curval[:, :, 0]), np.mean(tc.curval[:, :, 0])
 
     u.evolve(dt)
     v.evolve(dt)
@@ -54,6 +56,7 @@ def evolve():
 
     tl.evolve(dt)
     si.evolve(dt)
+    tc.evolve(dt)
 
 
 def flip():
@@ -70,6 +73,7 @@ def flip():
 
     tl.swap()
     si.swap()
+    tc.swap()
 
 
 def normalize(array):
@@ -98,7 +102,7 @@ if __name__ == '__main__':
     lasttile = 0
     while running == True:
         clock.tick(5)
-        time.sleep(5)
+        #time.sleep(1)
         pygame.display.set_caption('FPS: ' + str(clock.get_fps()))
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -106,7 +110,9 @@ if __name__ == '__main__':
 
         evolve()
 
+        bmap = si.curval[:, :, 0]
         tmap = T.curval[:, :, 0]
+        cmap = tc.curval[:, :, 0]
         umap = 0.5 * u.curval[:, :, 0] + 0.5 * u.curval[:, :, 1]
         vmap = 0.5 * v.curval[:, :, 0] + 0.5 * v.curval[:, :, 1]
         wmap = 0.5 * w.curval[:, :, 0] + 0.5 * w.curval[:, :, 1]
@@ -114,9 +120,10 @@ if __name__ == '__main__':
         mxs = np.max(smap)
         mns = np.min(smap)
         mms = np.mean(smap)
-        print 'wind(O): ', mxs, mns, mms
 
-        tcmap = normalize(T.curval[:, :, 0])
+        bcmap = normalize(bmap)
+        tcmap = normalize(tmap)
+        ccmap = normalize(cmap)
         scmap = normalize(smap)
         ucmap = normalize(umap)
         vcmap = normalize(vmap)
@@ -124,22 +131,33 @@ if __name__ == '__main__':
         for ixlng in range(system.planet.shape[0]):
             for ixlat in range(system.planet.shape[1]):
                 tval = tmap[ixlng, ixlat]
+                cval = cmap[ixlng, ixlat]
                 uval = umap[ixlng, ixlat]
                 vval = vmap[ixlng, ixlat]
                 sval = smap[ixlng, ixlat]
 
+                bcolor = bcmap[ixlng, ixlat]
                 scolor = scmap[ixlng, ixlat]
                 tcolor = tcmap[ixlng, ixlat]
+                ccolor = ccmap[ixlng, ixlat]
                 ucolor = ucmap[ixlng, ixlat]
                 vcolor = vcmap[ixlng, ixlat]
                 wcolor = wcmap[ixlng, ixlat]
                 tile = pygame.Surface((tile_size, tile_size))
                 r = (int(tcolor * 2 / 3) + int(72 * cntn[ixlng, ixlat, 0])) * (tval > 273.15) + (128 + int(tcolor / 2) + int(72 * cntn[ixlng, ixlat, 0])) * (tval <= 273.15)
-                g = (255 - int(tcolor * 2 / 3) - int(72 * cntn[ixlng, ixlat, 0])) + (255 - int(tcolor / 4) - int(72 * cntn[ixlng, ixlat, 0])) * (tval <= 273.15)
-                b = (255 - int(tcolor * 2 / 3) - int(72 * cntn[ixlng, ixlat, 0])) + (255 - int(tcolor / 4) - int(72 * cntn[ixlng, ixlat, 0])) * (tval <= 273.15)
-                r = (r > 255) * 255 + (r > 0) * (r < 256) * r
-                g = (g > 255) * 255 + (g > 0) * (g < 256) * g
-                b = (b > 255) * 255 + (b > 0) * (b < 256) * b
+                g = (128 + ccolor - int(72 * cntn[ixlng, ixlat, 0])) + (256 + ccolor - int(72 * cntn[ixlng, ixlat, 0])) * (tval <= 273.15)
+                b = (128 + ccolor - int(72 * cntn[ixlng, ixlat, 0])) + (256 + ccolor - int(72 * cntn[ixlng, ixlat, 0])) * (tval <= 273.15)
+                m = np.sqrt(r * r + g * g + b * b + 1)
+                r = int(r * (255 - ccolor + 0) / m)
+                g = int(g * (255 - ccolor + 0) / m)
+                b = int(b * (255 - ccolor + 0) / m)
+                m = np.sqrt(r * r + g * g + b * b + 1)
+                r = int(r * (bcolor + 160) / m)
+                g = int(g * (bcolor + 160) / m)
+                b = int(b * (bcolor + 160) / m)
+                r = (r > 255) * 255 + (r >= 0) * (r < 256) * r
+                g = (g > 255) * 255 + (g >= 0) * (g < 256) * g
+                b = (b > 255) * 255 + (b >= 0) * (b < 256) * b
                 tile.fill((r, g, b))
                 tile.set_alpha(64)
 
@@ -151,7 +169,6 @@ if __name__ == '__main__':
                     else:
                         pygame.draw.aaline(tile, (int(wcolor), int(ucolor), int(vcolor)), [arrrow_size / 2.0 - length * vval / uval, arrrow_size / 2.0 - length],
                                                                                           [arrrow_size / 2.0 + length * vval / uval, arrrow_size / 2.0 + length], True)
-
                 screen.blit(tile, (ixlng * tile_size, ixlat * tile_size))
 
         flip()
