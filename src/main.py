@@ -91,8 +91,8 @@ if __name__ == '__main__':
     map_width = solarsys.shape[0]
     map_height = solarsys.shape[1]
 
-    tile_size = 12
-    gap = int(6 / solarsys.dlng)
+    tile_size = 6
+    gap = int(12 / solarsys.dlng)
     wind_size = tile_size * gap
 
     pygame.init()
@@ -126,18 +126,15 @@ if __name__ == '__main__':
         umap = 0.5 * u.curval[:, :, 0] + 0.5 * u.curval[:, :, 1]
         vmap = 0.5 * v.curval[:, :, 0] + 0.5 * v.curval[:, :, 1]
         wmap = 0.5 * w.curval[:, :, 0] + 0.5 * w.curval[:, :, 1]
-        smap = np.sqrt(umap * umap + vmap * vmap + wmap * wmap + 0.001)
-        mxs = np.max(smap)
-        mns = np.min(smap)
-        mms = np.mean(smap)
+        smap = np.sqrt(umap * umap + vmap * vmap + 0.001)
 
         bcmap = normalize(bmap, 0, np.max(bmap))
         tcmap = normalize(tmap, 200, 374)
         ccmap = normalize(cmap, 0, 1)
         scmap = normalize(smap, 0, np.max(smap))
-        ucmap = normalize(umap, 0, np.max(smap))
-        vcmap = normalize(vmap, 0, np.max(smap))
-        wcmap = normalize(wmap, 0, np.max(smap))
+        ucmap = normalize(umap, 0, np.max(umap))
+        vcmap = normalize(vmap, 0, np.max(vmap))
+        wcmap = normalize(wmap, 0, np.max(wmap))
 
         r = (tcmap * 2 / 3 + 72 * mapc) * (tmap > 273.15) + (128 + tcmap / 2 + 72 * mapc) * (tmap <= 273.15)
         g = (128 + ccmap - 72 * mapc) + (256 + ccmap - 72 * mapc) * (tmap <= 273.15)
@@ -164,19 +161,28 @@ if __name__ == '__main__':
                 rval = r[ixlng, ixlat]
                 gval = g[ixlng, ixlat]
                 bval = b[ixlng, ixlat]
+                rval = rval * (rval > 0) * (rval < 256) + 255 * (rval > 255)
+                gval = gval * (rval > 0) * (gval < 256) + 255 * (gval > 255)
+                bval = bval * (rval > 0) * (bval < 256) + 255 * (bval > 255)
 
                 tilep.fill((rval, gval, bval))
-                tilep.set_alpha(255 - ccolor)
+                tilep.set_alpha((255 - ccolor) / 2)
                 screen.blit(tilep, (ixlng * tile_size, ixlat * tile_size))
 
                 if ixlng % gap == 0 and ixlat % gap == 0:
                     length = wind_size / 2 * scolor / 256.0
+                    tilew.fill((255, 255, 255))
+                    tilew.fill((255, 255, 255))
+                    tilew.fill((255, 255, 255))
+                    size = length
                     if np.absolute(uval) >= np.absolute(vval):
-                        pygame.draw.aaline(tilew, (wcolor, ucolor, vcolor), [wind_size / 2.0 - length, wind_size / 2.0 - length * vval / uval],
-                                                                                           [wind_size / 2.0 + length, wind_size / 2.0 + length * vval / uval], True)
+                        alpha = np.arctan2(uval, vval)
+                        pygame.draw.aaline(tilew, (wcolor, ucolor, vcolor), [wind_size / 2.0 - size * np.cos(alpha), wind_size / 2.0 - size * np.sin(alpha)],
+                                                                            [wind_size / 2.0 + size * np.cos(alpha), wind_size / 2.0 + size * np.sin(alpha)], True)
                     else:
-                        pygame.draw.aaline(tilew, (wcolor, ucolor, vcolor), [wind_size / 2.0 - length * vval / uval, wind_size / 2.0 - length],
-                                                                                           [wind_size / 2.0 + length * vval / uval, wind_size / 2.0 + length], True)
+                        alpha = np.arctan2(vval, uval)
+                        pygame.draw.aaline(tilew, (wcolor, ucolor, vcolor), [wind_size / 2.0 - size * np.sin(alpha), wind_size / 2.0 - size * np.cos(alpha)],
+                                                                                           [wind_size / 2.0 + size * np.sin(alpha), wind_size / 2.0 + size * np.cos(alpha)], True)
 
                     screen.blit(tilew, (ixlng * tile_size, ixlat * tile_size))
 

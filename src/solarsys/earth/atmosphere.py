@@ -22,11 +22,11 @@ def zinit(**kwargs):
 
 
 def uinit(**kwargs):
-    return np.copy(zero)
+    return 20 * np.random.random(solarsys.shape) - 10
 
 
 def vinit(**kwargs):
-    return np.copy(zero)
+    return 20 * np.random.random(solarsys.shape) - 10
 
 
 def winit(**kwargs):

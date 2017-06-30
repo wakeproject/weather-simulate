@@ -9,8 +9,8 @@ context = {
     't': t,
 }
 
-dlng = 3
-dlat = 3
+dlng = 2
+dlat = 2
 dalt = 500.0
 
 a = 6371000
