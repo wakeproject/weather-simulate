@@ -14,7 +14,7 @@ from solarsys.earth import StefanBoltzmann, WaterHeatCapacity, RockHeatCapacity,
 
 if not path.exists('data/continent.npy'):
     im = cv2.imread('data/earth-continent.png', 0)
-    np.save('data/continent', im > 250)
+    np.save('data/continent', im > 200)
 
 cntndata = np.array(np.load('data/continent.npy'), dtype=np.float64).T
 cntndata = (cv2.resize(cntndata, (shape[1], shape[0])))[:, :, np.newaxis]
