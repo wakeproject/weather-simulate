@@ -76,7 +76,7 @@ class VGrd(Grid):
         f_ph = np.gradient(rao * v * dSph * v)[1] / r
         f_r = np.gradient(rao * v * dSph * w)[2]
 
-        f = 0.0004 * (f_th + f_ph + f_r) / rao / dV * r
+        f = 0.0004 * (f_th + f_ph + f_r) / rao / dV
 
         return - u * u / r * np.tan(phi) - v * w / r - 2 * Omega * u * np.sin(phi) + a_ph - f
 
@@ -93,7 +93,7 @@ class WGrd(Grid):
         f_ph = np.gradient(rao * w * dSr * v)[1] / r
         f_r = np.gradient(rao * w * dSr * w)[2]
 
-        f = 0.0004 * (f_th + f_ph + f_r) / rao / dV * dalt
+        f = 0.0004 * (f_th + f_ph + f_r) / rao / dV
 
         dw = (u * u + v * v) / r + 2 * Omega * u * np.cos(phi) - g + a_r - f
         return dw * (1 - bottom) * (1 - top) + (w > 0) * dw * bottom + (w < 0) * dw * top
