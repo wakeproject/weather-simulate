@@ -176,13 +176,13 @@ if __name__ == '__main__':
                     tilew.fill((255, 255, 255))
                     size = length
                     if np.absolute(uval) >= np.absolute(vval):
-                        alpha = np.arctan2(uval, vval)
+                        alpha = np.arctan2(vval, uval)
                         pygame.draw.aaline(tilew, (wcolor, ucolor, vcolor), [wind_size / 2.0 - size * np.cos(alpha), wind_size / 2.0 - size * np.sin(alpha)],
                                                                             [wind_size / 2.0 + size * np.cos(alpha), wind_size / 2.0 + size * np.sin(alpha)], True)
                     else:
-                        alpha = np.arctan2(vval, uval)
+                        alpha = np.arctan2(uval, vval)
                         pygame.draw.aaline(tilew, (wcolor, ucolor, vcolor), [wind_size / 2.0 - size * np.sin(alpha), wind_size / 2.0 - size * np.cos(alpha)],
-                                                                                           [wind_size / 2.0 + size * np.sin(alpha), wind_size / 2.0 + size * np.cos(alpha)], True)
+                                                                            [wind_size / 2.0 + size * np.sin(alpha), wind_size / 2.0 + size * np.cos(alpha)], True)
 
                     screen.blit(tilew, (ixlng * tile_size, ixlat * tile_size))
 
