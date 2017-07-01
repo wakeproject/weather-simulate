@@ -100,7 +100,9 @@ def filter_extream_vector(name, array, u, v, w):
                 if name == 'w':
                     inject_random_nearby(i, j, xthresh, speed, w, array)
 
-    np.copyto(array, 0.95 * array)
+    speed = u * u + v * v + w * w
+    level = np.log(speed / 9 * (speed / 9 > 1) + (speed / 9 < 1)) * speed / 3000
+    np.copyto(array, (1 - 0.01 * level) * array)
 
 
 def combine_scalar(array):

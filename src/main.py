@@ -36,6 +36,7 @@ def evolve():
     solarsys.t = solarsys.t + dt
     print '----------------------------------------------------'
     print solarsys.t, dt
+    print 'speed: ', np.max(s), np.min(s), np.mean(s)
     tmp = 0.5 * s[:, :, 0] + 0.5 * s[:, :, 1]
     print 'wind: ', np.max(tmp), np.min(tmp), np.mean(tmp)
     tmp = T.curval[:, :, 0] - 273.15
@@ -139,10 +140,10 @@ if __name__ == '__main__':
         r = (tcmap * 2 / 3 + 72 * mapc) * (tmap > 273.15) + (128 + tcmap / 2 + 72 * mapc) * (tmap <= 273.15)
         g = (128 + ccmap - 72 * mapc) * (tmap > 273.15) + (256 + ccmap - 72 * mapc) * (tmap <= 273.15)
         b = (128 + ccmap - 72 * mapc) * (tmap > 273.15) + (256 + ccmap - 72 * mapc) * (tmap <= 273.15)
-        bcmap = bcmap + 200
-        r = r * bcmap / (255 + 200)
-        g = g * bcmap / (255 + 200)
-        b = b * bcmap / (255 + 200)
+        bcmap = bcmap + 100
+        r = r * bcmap / (255 + 100)
+        g = g * bcmap / (255 + 100)
+        b = b * bcmap / (255 + 100)
 
         for ixlng in range(solarsys.shape[0]):
             for ixlat in range(solarsys.shape[1]):
@@ -161,9 +162,9 @@ if __name__ == '__main__':
                 rval = r[ixlng, ixlat]
                 gval = g[ixlng, ixlat]
                 bval = b[ixlng, ixlat]
-                rval = rval * (rval > 0) * (rval < 256) + 255 * (rval > 255)
-                gval = gval * (rval > 0) * (gval < 256) + 255 * (gval > 255)
-                bval = bval * (rval > 0) * (bval < 256) + 255 * (bval > 255)
+                rval = rval * (rval > 0) * (rval <= 255) + 255 * (rval > 255)
+                gval = gval * (rval > 0) * (gval <= 255) + 255 * (gval > 255)
+                bval = bval * (rval > 0) * (bval <= 255) + 255 * (bval > 255)
 
                 try:
                     tilep.fill((rval, gval, bval))
