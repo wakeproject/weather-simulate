@@ -165,7 +165,10 @@ if __name__ == '__main__':
                 gval = gval * (rval > 0) * (gval < 256) + 255 * (gval > 255)
                 bval = bval * (rval > 0) * (bval < 256) + 255 * (bval > 255)
 
-                tilep.fill((rval, gval, bval))
+                try:
+                    tilep.fill((rval, gval, bval))
+                except:
+                    print rval, gval, bval
                 tilep.set_alpha((255 - ccolor) / 2)
                 screen.blit(tilep, (ixlng * tile_size, ixlat * tile_size))
 
