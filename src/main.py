@@ -137,8 +137,8 @@ if __name__ == '__main__':
         wcmap = normalize(wmap, 0, np.max(wmap))
 
         r = (tcmap * 2 / 3 + 72 * mapc) * (tmap > 273.15) + (128 + tcmap / 2 + 72 * mapc) * (tmap <= 273.15)
-        g = (128 + ccmap - 72 * mapc) + (256 + ccmap - 72 * mapc) * (tmap <= 273.15)
-        b = (128 + ccmap - 72 * mapc) + (256 + ccmap - 72 * mapc) * (tmap <= 273.15)
+        g = (128 + ccmap - 72 * mapc) * (tmap > 273.15) + (256 + ccmap - 72 * mapc) * (tmap <= 273.15)
+        b = (128 + ccmap - 72 * mapc) * (tmap > 273.15) + (256 + ccmap - 72 * mapc) * (tmap <= 273.15)
         bcmap = bcmap + 200
         r = r * bcmap / (255 + 200)
         g = g * bcmap / (255 + 200)
@@ -174,8 +174,6 @@ if __name__ == '__main__':
 
                 if ixlng % gap == 0 and ixlat % gap == 0:
                     length = wind_size / 2 * scolor / 256.0
-                    tilew.fill((255, 255, 255))
-                    tilew.fill((255, 255, 255))
                     tilew.fill((255, 255, 255))
                     size = length
                     if np.absolute(uval) >= np.absolute(vval):
