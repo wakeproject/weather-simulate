@@ -101,7 +101,7 @@ def filter_extream_vector(name, array, u, v, w):
                     inject_random_nearby(i, j, xthresh, speed, w, array)
 
     speed = u * u + v * v + w * w
-    level = np.log(speed / 9 * (speed / 9 > 1) + (speed / 9 < 1)) * speed / 3000
+    level = np.log(speed / 9 * (speed / 9 > 1) + (speed / 9 < 1)) * np.sqrt(speed / 3000)
     np.copyto(array, (1 - 0.01 * level) * array)
 
 
